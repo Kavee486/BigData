@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+.venv/
+logs/
+data/parquet/
+data/batch_drop/
+*.log
+.env
+node_modules/
+.pytest_cache/

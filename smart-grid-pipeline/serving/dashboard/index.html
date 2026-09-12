@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Smart Grid Monitoring & Billing</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<style>
+  :root { color-scheme: light dark; }
+  body { font-family: -apple-system, Segoe UI, Roboto, sans-serif; margin: 0; padding: 24px; background:#0b1220; color:#e6ecf5; }
+  h1 { font-size: 1.4rem; margin-bottom: 4px; }
+  .sub { color:#8fa2c7; margin-bottom: 20px; font-size:0.9rem; }
+  .grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(220px,1fr)); gap:16px; margin-bottom:24px; }
+  .card { background:#141c2f; border:1px solid #223054; border-radius:10px; padding:16px; }
+  .card h3 { margin:0 0 8px; font-size:0.8rem; text-transform:uppercase; letter-spacing:.05em; color:#8fa2c7; }
+  .metric { font-size:1.8rem; font-weight:600; }
+  .zone-row { display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px solid #223054; font-size:0.9rem; }
+  .badge { padding:2px 8px; border-radius:12px; font-size:0.75rem; font-weight:600; }
+  .ok { background:#16452a; color:#7ee2a8; }
+  .warn { background:#4a3410; color:#f5c56b; }
+  .crit { background:#4a1616; color:#f57b7b; }
+  table { width:100%; border-collapse: collapse; font-size:0.85rem; }
+  th, td { text-align:left; padding:6px 8px; border-bottom:1px solid #223054; }
+  th { color:#8fa2c7; font-weight:600; }
+  #status-pill { float:right; }
+  .section-title { margin-top:8px; margin-bottom:8px; font-size:1.05rem; }
+</style>
+</head>
+<body>
+  <h1>⚡ Smart Grid Monitoring & Billing <span id="status-pill" class="badge ok">loading…</span></h1>
+  <div class="sub">Lambda architecture demo — live speed-layer view + batch-layer daily billing. Auto-refreshes every 5s.</div>
+
+  <div class="grid">
+    <div class="card"><h3>Grid Load (kWh, current window)</h3><div class="metric" id="m-consumption">–</div></div>
+    <div class="card"><h3>Solar Generation (kWh)</h3><div class="metric" id="m-solar">–</div></div>
+    <div class="card"><h3>Renewable Contribution</h3><div class="metric" id="m-renewable">–</div></div>
+    <div class="card"><h3>Open Alerts</h3><div class="metric" id="m-alerts">–</div></div>
+  </div>
+
+  <div class="card" style="margin-bottom:24px;">
+    <h3 class="section-title">Load & Renewable % by Zone</h3>
+    <div id="zones"></div>
+  </div>
+
+  <div class="card" style="margin-bottom:24px;">
+    <h3 class="section-title">Active Alerts</h3>
+    <table id="alerts-table"><thead><tr><th>Type</th><th>Scope</th><th>Severity</th><th>Message</th><th>Triggered</th></tr></thead><tbody></tbody></table>
+  </div>
+
+  <div class="card">
+    <h3 class="section-title">Latest Daily Billing Report (batch layer)</h3>
+    <table id="billing-table"><thead><tr><th>Household</th><th>Zone</th><th>Consumption (kWh)</th><th>Solar (kWh)</th><th>Net (kWh)</th><th>Tariff</th><th>Tier</th><th>Subsidy</th><th>Bill</th></tr></thead><tbody></tbody></table>
+    <div class="sub" id="billing-total"></div>
+  </div>
+
+<script>
+async function fetchJSON(path) {
+  const res = await fetch(path);
+  return res.json();
+}
+
+function badgeClass(sev) {
+  if (sev === 'CRITICAL') return 'crit';
+  if (sev === 'WARNING') return 'warn';
+  return 'ok';
+}
+
+async function refresh() {
+  try {
+    const [live, alerts, billing, health] = await Promise.all([
+      fetchJSON('/api/grid/live'),
+      fetchJSON('/api/alerts'),
+      fetchJSON('/api/billing/daily'),
+      fetchJSON('/health'),
+    ]);
+
+    document.getElementById('m-consumption').textContent = live.grid_total_consumption_kwh.toFixed(2);
+    document.getElementById('m-solar').textContent = live.grid_total_solar_kwh.toFixed(2);
+    document.getElementById('m-renewable').textContent = live.grid_renewable_pct.toFixed(1) + '%';
+    document.getElementById('m-alerts').textContent = alerts.count;
+
+    const pill = document.getElementById('status-pill');
+    pill.textContent = health.status;
+    pill.className = 'badge ' + (health.status === 'OK' ? 'ok' : 'crit');
+
+    const zonesDiv = document.getElementById('zones');
+    zonesDiv.innerHTML = live.zones.map(z => `
+      <div class="zone-row">
+        <span>${z.grid_zone}</span>
+        <span>${Number(z.total_consumption_kwh).toFixed(2)} kWh load · ${Number(z.renewable_pct).toFixed(1)}% renewable</span>
+      </div>`).join('') || '<div class="sub">No windows yet — waiting for streaming data…</div>';
+
+    const alertsBody = document.querySelector('#alerts-table tbody');
+    alertsBody.innerHTML = alerts.alerts.map(a => `
+      <tr>
+        <td>${a.alert_type}</td><td>${a.scope}</td>
+        <td><span class="badge ${badgeClass(a.severity)}">${a.severity}</span></td>
+        <td>${a.message}</td>
+        <td>${new Date(a.triggered_at).toLocaleTimeString()}</td>
+      </tr>`).join('') || '<tr><td colspan="5" class="sub">No active alerts</td></tr>';
+
+    const billingBody = document.querySelector('#billing-table tbody');
+    billingBody.innerHTML = billing.rows.map(r => `
+      <tr>
+        <td>${r.household_id}</td><td>${r.grid_zone}</td>
+        <td>${Number(r.total_consumption_kwh).toFixed(2)}</td>
+        <td>${Number(r.total_solar_kwh).toFixed(2)}</td>
+        <td>${Number(r.net_consumption_kwh).toFixed(2)}</td>
+        <td>${Number(r.tariff_rate).toFixed(2)}</td>
+        <td>${r.billing_tier}</td>
+        <td>${r.subsidy_flag ? 'Yes' : 'No'}</td>
+        <td>${Number(r.bill_amount).toFixed(2)}</td>
+      </tr>`).join('') || '<tr><td colspan="9" class="sub">No billing report yet — waiting for the first batch run…</td></tr>';
+    document.getElementById('billing-total').textContent = billing.rows.length
+      ? `Households billed: ${billing.count} · Total billed: ${billing.total_billed}`
+      : '';
+  } catch (e) {
+    console.error(e);
+  }
+}
+
+refresh();
+setInterval(refresh, 5000);
+</script>
+</body>
+</html>

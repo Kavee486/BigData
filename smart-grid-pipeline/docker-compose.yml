@@ -1,0 +1,138 @@
+version: "3.8"
+
+x-app-env: &app-env
+  SIMULATED_DAY_SECONDS: "300"
+  METER_EMIT_INTERVAL_SECONDS: "2"
+  NUM_HOUSEHOLDS: "24"
+  KAFKA_BOOTSTRAP_SERVERS: "kafka:9092"
+  KAFKA_TOPIC_METER_READINGS: "smart-meter-readings"
+  POSTGRES_HOST: "postgres"
+  POSTGRES_PORT: "5432"
+  POSTGRES_DB: "smartgrid"
+  POSTGRES_USER: "smartgrid"
+  POSTGRES_PASSWORD: "smartgrid"
+  DATA_LAKE_ROOT: "/data/lake"
+  BATCH_DROP_DIR: "/data/batch_drop"
+  LOG_DIR: "/logs"
+  LOW_RENEWABLE_PCT_THRESHOLD: "10"
+  NO_DATA_ALERT_MINUTES: "2"
+
+services:
+  zookeeper:
+    image: bitnami/zookeeper:3.9
+    environment:
+      ALLOW_ANONYMOUS_LOGIN: "yes"
+    ports: ["2181:2181"]
+
+  kafka:
+    image: bitnami/kafka:3.6
+    depends_on: [zookeeper]
+    environment:
+      KAFKA_CFG_ZOOKEEPER_CONNECT: "zookeeper:2181"
+      KAFKA_CFG_LISTENERS: "PLAINTEXT://:9092"
+      KAFKA_CFG_ADVERTISED_LISTENERS: "PLAINTEXT://kafka:9092"
+      ALLOW_PLAINTEXT_LISTENER: "yes"
+      KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_CFG_NUM_PARTITIONS: "3"
+    ports: ["9092:9092"]
+    healthcheck:
+      test: ["CMD", "kafka-topics.sh", "--bootstrap-server", "localhost:9092", "--list"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: smartgrid
+      POSTGRES_USER: smartgrid
+      POSTGRES_PASSWORD: smartgrid
+    ports: ["5432:5432"]
+    volumes:
+      - pg-data:/var/lib/postgresql/data
+      - ./storage/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U smartgrid -d smartgrid"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  meter-producer:
+    build: { context: ., dockerfile: Dockerfile.app }
+    command: ["python", "sources/smart_meter_producer.py"]
+    environment: *app-env
+    depends_on:
+      kafka: { condition: service_healthy }
+    volumes:
+      - ./logs:/logs
+
+  tariff-batch-source:
+    build: { context: ., dockerfile: Dockerfile.app }
+    command: ["python", "sources/tariff_batch_source.py"]
+    environment: *app-env
+    volumes:
+      - lake-data:/data/lake
+      - batch-drop:/data/batch_drop
+      - ./logs:/logs
+
+  spark-speed-layer:
+    build: { context: ., dockerfile: Dockerfile.spark }
+    command: >
+      spark-submit
+      --master local[2]
+      --packages org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.1,org.postgresql:postgresql:42.7.3
+      /app/processing/speed_layer_spark.py
+    environment: *app-env
+    depends_on:
+      kafka: { condition: service_healthy }
+      postgres: { condition: service_healthy }
+    volumes:
+      - lake-data:/data/lake
+      - ./logs:/logs
+
+  alerts-engine:
+    build: { context: ., dockerfile: Dockerfile.app }
+    command: ["python", "observability/alerts.py"]
+    environment: *app-env
+    depends_on:
+      postgres: { condition: service_healthy }
+    volumes:
+      - ./logs:/logs
+
+  api:
+    build: { context: ., dockerfile: Dockerfile.app }
+    command: ["uvicorn", "serving.api.main:app", "--host", "0.0.0.0", "--port", "8000"]
+    environment: *app-env
+    depends_on:
+      postgres: { condition: service_healthy }
+    ports: ["8000:8000"]
+    volumes:
+      - ./logs:/logs
+
+  airflow:
+    build: { context: ., dockerfile: Dockerfile.airflow }
+    command: >
+      bash -c "airflow db init &&
+               airflow users create --username admin --password admin --firstname Admin --lastname User --role Admin --email admin@example.com || true &&
+               airflow standalone"
+    environment:
+      <<: *app-env
+      AIRFLOW__CORE__EXECUTOR: "SequentialExecutor"
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: "sqlite:////opt/airflow/airflow.db"
+      AIRFLOW__CORE__DAGS_FOLDER: "/app/airflow/dags"
+      AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+      AIRFLOW__WEBSERVER__EXPOSE_CONFIG: "true"
+    depends_on:
+      postgres: { condition: service_healthy }
+    ports: ["8080:8080"]
+    volumes:
+      - lake-data:/data/lake
+      - batch-drop:/data/batch_drop
+      - airflow-home:/opt/airflow
+      - ./logs:/logs
+
+volumes:
+  pg-data:
+  lake-data:
+  batch-drop:
+  airflow-home:

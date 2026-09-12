@@ -1,0 +1,14 @@
+# Spark image used for both the speed-layer structured-streaming job and the
+# batch-layer job invoked from Airflow. Based on bitnami/spark so spark-submit,
+# a matching JVM, and Hadoop client libs are already present.
+FROM bitnami/spark:3.5.1
+
+USER root
+WORKDIR /app
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY . .
+
+ENV PYTHONPATH=/app
