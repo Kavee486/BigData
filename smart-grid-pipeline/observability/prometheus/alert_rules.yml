@@ -1,0 +1,68 @@
+# Prometheus alert rules. They mirror the in-pipeline rule engine
+# (observability/alerts.py) so the same conditions are visible both in the
+# app's own /api/alerts and in a standard monitoring stack.
+groups:
+  - name: smartgrid-pipeline-health
+    rules:
+      - alert: ScrapeTargetDown
+        expr: up == 0
+        for: 1m
+        labels: { severity: critical }
+        annotations:
+          summary: "{{ $labels.job }} metrics endpoint is down"
+
+      - alert: PipelineComponentStale
+        expr: pipeline_component_staleness_seconds > pipeline_component_stale_budget_seconds
+        for: 30s
+        labels: { severity: critical }
+        annotations:
+          summary: "No heartbeat from {{ $labels.component }} for {{ $value | humanizeDuration }}"
+
+      - alert: PipelineComponentUnhealthy
+        expr: pipeline_component_up == 0
+        for: 1m
+        labels: { severity: critical }
+        annotations:
+          summary: "{{ $labels.component }} is stale or reported a failure"
+
+      - alert: NoMeterEventsProduced
+        expr: rate(meter_events_delivered_total[2m]) == 0
+        for: 2m
+        labels: { severity: critical }
+        annotations:
+          summary: "Streaming source delivered no events to Kafka in the last 2 minutes"
+
+      - alert: ProducerDeliveryErrors
+        expr: rate(meter_events_delivery_failed_total[5m]) > 0
+        for: 1m
+        labels: { severity: warning }
+        annotations:
+          summary: "Kafka is rejecting / failing meter event deliveries"
+
+      - alert: HighInvalidEventRate
+        expr: stream_invalid_event_rate_pct > 5
+        for: 2m
+        labels: { severity: warning }
+        annotations:
+          summary: "{{ $value | printf \"%.1f\" }}% of meter events quarantined (last 5m)"
+
+      - alert: HighStreamLag
+        expr: stream_processing_lag_seconds > 60
+        for: 1m
+        labels: { severity: warning }
+        annotations:
+          summary: "Speed layer is {{ $value | printf \"%.0f\" }}s behind event time"
+
+      - alert: ReconciliationDrift
+        expr: abs(batch_reconciliation_drift_pct) > 10
+        labels: { severity: warning }
+        annotations:
+          summary: "Speed vs batch consumption differ by {{ $value | printf \"%.1f\" }}% for the last billed day"
+
+  - name: smartgrid-business
+    rules:
+      - alert: LowRenewableContribution
+        expr: alerts_active{alert_type="LOW_RENEWABLE"} > 0
+        labels: { severity: warning }
+        annotations:
+          summary: "{{ $value }} zone(s) below the renewable threshold during daylight"

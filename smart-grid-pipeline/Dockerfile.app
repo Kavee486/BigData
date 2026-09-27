@@ -1,15 +1,12 @@
-# Lightweight image for the pure-Python components: producers, batch source,
-# alerts engine, and the FastAPI serving layer. Spark jobs run in a separate
-# image (Dockerfile.spark) since they need a JVM + Spark distribution.
-FROM python:3.11-slim
+# Lightweight image for the pure-Python components: streaming producer,
+# daily batch source, alerts engine and the FastAPI serving layer.
+FROM python:3.11-slim-bookworm
 
 WORKDIR /app
-
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
-
 ENV PYTHONUNBUFFERED=1 \
     PYTHONPATH=/app
 

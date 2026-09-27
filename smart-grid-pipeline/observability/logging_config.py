@@ -2,19 +2,23 @@
 
 Every component calls get_logger(component_name) so log lines are uniform
 and greppable/parseable, e.g. by a log shipper in a real deployment. Each
-line is one JSON object -> {"ts", "level", "component", "msg", ...extra}.
+line is one JSON object -> {"ts", "time", "level", "component", "msg", ...extra}.
+Correlation fields (sim_day, batch_id, run_id, event_id, household_id) are
+passed as extra fields so one day / run / event can be traced across stages.
 """
 import json
 import logging
 import os
 import sys
 import time
+from datetime import datetime, timezone
 
 
 class JsonFormatter(logging.Formatter):
     def format(self, record: logging.LogRecord) -> str:
         payload = {
-            "ts": round(time.time(), 3),
+            "ts": round(record.created, 3),
+            "time": datetime.fromtimestamp(record.created, timezone.utc).isoformat(timespec="milliseconds"),
             "level": record.levelname,
             "component": getattr(record, "component", record.name),
             "msg": record.getMessage(),

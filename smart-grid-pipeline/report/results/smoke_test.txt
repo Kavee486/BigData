@@ -1,0 +1,14 @@
+$ python scripts/smoke_test.py
+[PASS] ingestion: producer delivered events to Kafka -- 10490 delivered
+[PASS] speed layer: live window for all 4 zones -- ['East', 'North', 'South', 'West']
+[PASS] speed layer: events processed in last 5 min -- 3679 events
+[PASS] processing: dirty events are quarantined -- {"bad_timestamp": 16, "out_of_range": 12, "missing_field": 10, "negative_value": 7}
+[PASS] observability: /health reports every component OK -- alerts_engine=OK, batch_layer=OK, meter_producer=OK, speed_layer=OK, tariff_batch_source=OK
+[PASS] observability: /metrics exports pipeline gauges
+[PASS] observability: Prometheus alert rules loaded -- 9 rules
+[PASS] observability: Prometheus scrape targets up -- meter-producer=up, prometheus=up, serving-api=up
+[PASS] batch layer: every bill matches billing_rules.compute_bill -- 24 bills for sim_day 4, mismatches=[]
+[PASS] batch layer: speed/batch reconciliation recorded -- drift=0.14%
+[PASS] lambda merge: provisional bills for the running day -- 24 households, total 15491.04
+
+ALL CHECKS PASSED

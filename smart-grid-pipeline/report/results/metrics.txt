@@ -1,0 +1,324 @@
+# HELP python_gc_objects_collected_total Objects collected during gc
+# TYPE python_gc_objects_collected_total counter
+python_gc_objects_collected_total{generation="0"} 489.0
+python_gc_objects_collected_total{generation="1"} 527.0
+python_gc_objects_collected_total{generation="2"} 27.0
+# HELP python_gc_objects_uncollectable_total Uncollectable objects found during GC
+# TYPE python_gc_objects_uncollectable_total counter
+python_gc_objects_uncollectable_total{generation="0"} 0.0
+python_gc_objects_uncollectable_total{generation="1"} 0.0
+python_gc_objects_uncollectable_total{generation="2"} 0.0
+# HELP python_gc_collections_total Number of times this generation was collected
+# TYPE python_gc_collections_total counter
+python_gc_collections_total{generation="0"} 419.0
+python_gc_collections_total{generation="1"} 38.0
+python_gc_collections_total{generation="2"} 3.0
+# HELP python_info Python platform information
+# TYPE python_info gauge
+python_info{implementation="CPython",major="3",minor="11",patchlevel="16",version="3.11.16"} 1.0
+# HELP process_virtual_memory_bytes Virtual memory size in bytes.
+# TYPE process_virtual_memory_bytes gauge
+process_virtual_memory_bytes 7.01394944e+08
+# HELP process_resident_memory_bytes Resident memory size in bytes.
+# TYPE process_resident_memory_bytes gauge
+process_resident_memory_bytes 6.22592e+07
+# HELP process_start_time_seconds Start time of the process since unix epoch in seconds.
+# TYPE process_start_time_seconds gauge
+process_start_time_seconds 1.79050071468e+09
+# HELP process_cpu_seconds_total Total user and system CPU time spent in seconds.
+# TYPE process_cpu_seconds_total counter
+process_cpu_seconds_total 22.24
+# HELP process_open_fds Number of open file descriptors.
+# TYPE process_open_fds gauge
+process_open_fds 16.0
+# HELP process_max_fds Maximum number of open file descriptors.
+# TYPE process_max_fds gauge
+process_max_fds 1.048576e+06
+# HELP api_requests_total Total API requests handled
+# TYPE api_requests_total counter
+api_requests_total{endpoint="/api/grid/history",status="200"} 145.0
+api_requests_total{endpoint="/api/billing/daily",status="200"} 170.0
+api_requests_total{endpoint="/api/alerts",status="200"} 187.0
+api_requests_total{endpoint="/api/grid/live",status="200"} 148.0
+api_requests_total{endpoint="/health",status="200"} 174.0
+api_requests_total{endpoint="/api/billing/projection",status="200"} 148.0
+api_requests_total{endpoint="/api/reconciliation",status="200"} 207.0
+api_requests_total{endpoint="/api/billing/summary",status="200"} 146.0
+api_requests_total{endpoint="/api/pipeline/status",status="200"} 148.0
+api_requests_total{endpoint="/metrics",status="200"} 109.0
+api_requests_total{endpoint="static",status="200"} 107.0
+api_requests_total{endpoint="static",status="404"} 1.0
+# HELP api_requests_created Total API requests handled
+# TYPE api_requests_created gauge
+api_requests_created{endpoint="/api/grid/history",status="200"} 1.790500716773934e+09
+api_requests_created{endpoint="/api/billing/daily",status="200"} 1.7905007167789032e+09
+api_requests_created{endpoint="/api/alerts",status="200"} 1.790500716783968e+09
+api_requests_created{endpoint="/api/grid/live",status="200"} 1.790500716789466e+09
+api_requests_created{endpoint="/health",status="200"} 1.7905007167925353e+09
+api_requests_created{endpoint="/api/billing/projection",status="200"} 1.790500716794182e+09
+api_requests_created{endpoint="/api/reconciliation",status="200"} 1.7905007168091168e+09
+api_requests_created{endpoint="/api/billing/summary",status="200"} 1.790500716818323e+09
+api_requests_created{endpoint="/api/pipeline/status",status="200"} 1.7905007168288102e+09
+api_requests_created{endpoint="/metrics",status="200"} 1.7905007189442978e+09
+api_requests_created{endpoint="static",status="200"} 1.790500729428642e+09
+api_requests_created{endpoint="static",status="404"} 1.7905013254311724e+09
+# HELP api_request_duration_seconds API request latency
+# TYPE api_request_duration_seconds histogram
+api_request_duration_seconds_bucket{endpoint="/api/grid/history",le="0.005"} 1.0
+api_request_duration_seconds_bucket{endpoint="/api/grid/history",le="0.01"} 1.0
+api_request_duration_seconds_bucket{endpoint="/api/grid/history",le="0.025"} 88.0
+api_request_duration_seconds_bucket{endpoint="/api/grid/history",le="0.05"} 134.0
+api_request_duration_seconds_bucket{endpoint="/api/grid/history",le="0.075"} 139.0
+api_request_duration_seconds_bucket{endpoint="/api/grid/history",le="0.1"} 141.0
+api_request_duration_seconds_bucket{endpoint="/api/grid/history",le="0.25"} 143.0
+api_request_duration_seconds_bucket{endpoint="/api/grid/history",le="0.5"} 145.0
+api_request_duration_seconds_bucket{endpoint="/api/grid/history",le="0.75"} 145.0
+api_request_duration_seconds_bucket{endpoint="/api/grid/history",le="1.0"} 145.0
+api_request_duration_seconds_bucket{endpoint="/api/grid/history",le="2.5"} 145.0
+api_request_duration_seconds_bucket{endpoint="/api/grid/history",le="5.0"} 145.0
+api_request_duration_seconds_bucket{endpoint="/api/grid/history",le="7.5"} 145.0
+api_request_duration_seconds_bucket{endpoint="/api/grid/history",le="10.0"} 145.0
+api_request_duration_seconds_bucket{endpoint="/api/grid/history",le="+Inf"} 145.0
+api_request_duration_seconds_count{endpoint="/api/grid/history"} 145.0
+api_request_duration_seconds_sum{endpoint="/api/grid/history"} 4.162027359008789
+api_request_duration_seconds_bucket{endpoint="/api/billing/daily",le="0.005"} 0.0
+api_request_duration_seconds_bucket{endpoint="/api/billing/daily",le="0.01"} 16.0
+api_request_duration_seconds_bucket{endpoint="/api/billing/daily",le="0.025"} 68.0
+api_request_duration_seconds_bucket{endpoint="/api/billing/daily",le="0.05"} 155.0
+api_request_duration_seconds_bucket{endpoint="/api/billing/daily",le="0.075"} 162.0
+api_request_duration_seconds_bucket{endpoint="/api/billing/daily",le="0.1"} 163.0
+api_request_duration_seconds_bucket{endpoint="/api/billing/daily",le="0.25"} 168.0
+api_request_duration_seconds_bucket{endpoint="/api/billing/daily",le="0.5"} 169.0
+api_request_duration_seconds_bucket{endpoint="/api/billing/daily",le="0.75"} 170.0
+api_request_duration_seconds_bucket{endpoint="/api/billing/daily",le="1.0"} 170.0
+api_request_duration_seconds_bucket{endpoint="/api/billing/daily",le="2.5"} 170.0
+api_request_duration_seconds_bucket{endpoint="/api/billing/daily",le="5.0"} 170.0
+api_request_duration_seconds_bucket{endpoint="/api/billing/daily",le="7.5"} 170.0
+api_request_duration_seconds_bucket{endpoint="/api/billing/daily",le="10.0"} 170.0
+api_request_duration_seconds_bucket{endpoint="/api/billing/daily",le="+Inf"} 170.0
+api_request_duration_seconds_count{endpoint="/api/billing/daily"} 170.0
+api_request_duration_seconds_sum{endpoint="/api/billing/daily"} 5.961538314819336
+api_request_duration_seconds_bucket{endpoint="/api/alerts",le="0.005"} 0.0
+api_request_duration_seconds_bucket{endpoint="/api/alerts",le="0.01"} 49.0
+api_request_duration_seconds_bucket{endpoint="/api/alerts",le="0.025"} 156.0
+api_request_duration_seconds_bucket{endpoint="/api/alerts",le="0.05"} 182.0
+api_request_duration_seconds_bucket{endpoint="/api/alerts",le="0.075"} 183.0
+api_request_duration_seconds_bucket{endpoint="/api/alerts",le="0.1"} 184.0
+api_request_duration_seconds_bucket{endpoint="/api/alerts",le="0.25"} 186.0
+api_request_duration_seconds_bucket{endpoint="/api/alerts",le="0.5"} 187.0
+api_request_duration_seconds_bucket{endpoint="/api/alerts",le="0.75"} 187.0
+api_request_duration_seconds_bucket{endpoint="/api/alerts",le="1.0"} 187.0
+api_request_duration_seconds_bucket{endpoint="/api/alerts",le="2.5"} 187.0
+api_request_duration_seconds_bucket{endpoint="/api/alerts",le="5.0"} 187.0
+api_request_duration_seconds_bucket{endpoint="/api/alerts",le="7.5"} 187.0
+api_request_duration_seconds_bucket{endpoint="/api/alerts",le="10.0"} 187.0
+api_request_duration_seconds_bucket{endpoint="/api/alerts",le="+Inf"} 187.0
+api_request_duration_seconds_count{endpoint="/api/alerts"} 187.0
+api_request_duration_seconds_sum{endpoint="/api/alerts"} 3.775679111480713
+api_request_duration_seconds_bucket{endpoint="/api/grid/live",le="0.005"} 1.0
+api_request_duration_seconds_bucket{endpoint="/api/grid/live",le="0.01"} 8.0
+api_request_duration_seconds_bucket{endpoint="/api/grid/live",le="0.025"} 124.0
+api_request_duration_seconds_bucket{endpoint="/api/grid/live",le="0.05"} 145.0
+api_request_duration_seconds_bucket{endpoint="/api/grid/live",le="0.075"} 146.0
+api_request_duration_seconds_bucket{endpoint="/api/grid/live",le="0.1"} 146.0
+api_request_duration_seconds_bucket{endpoint="/api/grid/live",le="0.25"} 147.0
+api_request_duration_seconds_bucket{endpoint="/api/grid/live",le="0.5"} 147.0
+api_request_duration_seconds_bucket{endpoint="/api/grid/live",le="0.75"} 148.0
+api_request_duration_seconds_bucket{endpoint="/api/grid/live",le="1.0"} 148.0
+api_request_duration_seconds_bucket{endpoint="/api/grid/live",le="2.5"} 148.0
+api_request_duration_seconds_bucket{endpoint="/api/grid/live",le="5.0"} 148.0
+api_request_duration_seconds_bucket{endpoint="/api/grid/live",le="7.5"} 148.0
+api_request_duration_seconds_bucket{endpoint="/api/grid/live",le="10.0"} 148.0
+api_request_duration_seconds_bucket{endpoint="/api/grid/live",le="+Inf"} 148.0
+api_request_duration_seconds_count{endpoint="/api/grid/live"} 148.0
+api_request_duration_seconds_sum{endpoint="/api/grid/live"} 3.012888193130493
+api_request_duration_seconds_bucket{endpoint="/health",le="0.005"} 2.0
+api_request_duration_seconds_bucket{endpoint="/health",le="0.01"} 24.0
+api_request_duration_seconds_bucket{endpoint="/health",le="0.025"} 135.0
+api_request_duration_seconds_bucket{endpoint="/health",le="0.05"} 167.0
+api_request_duration_seconds_bucket{endpoint="/health",le="0.075"} 170.0
+api_request_duration_seconds_bucket{endpoint="/health",le="0.1"} 171.0
+api_request_duration_seconds_bucket{endpoint="/health",le="0.25"} 174.0
+api_request_duration_seconds_bucket{endpoint="/health",le="0.5"} 174.0
+api_request_duration_seconds_bucket{endpoint="/health",le="0.75"} 174.0
+api_request_duration_seconds_bucket{endpoint="/health",le="1.0"} 174.0
+api_request_duration_seconds_bucket{endpoint="/health",le="2.5"} 174.0
+api_request_duration_seconds_bucket{endpoint="/health",le="5.0"} 174.0
+api_request_duration_seconds_bucket{endpoint="/health",le="7.5"} 174.0
+api_request_duration_seconds_bucket{endpoint="/health",le="10.0"} 174.0
+api_request_duration_seconds_bucket{endpoint="/health",le="+Inf"} 174.0
+api_request_duration_seconds_count{endpoint="/health"} 174.0
+api_request_duration_seconds_sum{endpoint="/health"} 3.0249249935150146
+api_request_duration_seconds_bucket{endpoint="/api/billing/projection",le="0.005"} 1.0
+api_request_duration_seconds_bucket{endpoint="/api/billing/projection",le="0.01"} 2.0
+api_request_duration_seconds_bucket{endpoint="/api/billing/projection",le="0.025"} 86.0
+api_request_duration_seconds_bucket{endpoint="/api/billing/projection",le="0.05"} 138.0
+api_request_duration_seconds_bucket{endpoint="/api/billing/projection",le="0.075"} 145.0
+api_request_duration_seconds_bucket{endpoint="/api/billing/projection",le="0.1"} 145.0
+api_request_duration_seconds_bucket{endpoint="/api/billing/projection",le="0.25"} 147.0
+api_request_duration_seconds_bucket{endpoint="/api/billing/projection",le="0.5"} 147.0
+api_request_duration_seconds_bucket{endpoint="/api/billing/projection",le="0.75"} 148.0
+api_request_duration_seconds_bucket{endpoint="/api/billing/projection",le="1.0"} 148.0
+api_request_duration_seconds_bucket{endpoint="/api/billing/projection",le="2.5"} 148.0
+api_request_duration_seconds_bucket{endpoint="/api/billing/projection",le="5.0"} 148.0
+api_request_duration_seconds_bucket{endpoint="/api/billing/projection",le="7.5"} 148.0
+api_request_duration_seconds_bucket{endpoint="/api/billing/projection",le="10.0"} 148.0
+api_request_duration_seconds_bucket{endpoint="/api/billing/projection",le="+Inf"} 148.0
+api_request_duration_seconds_count{endpoint="/api/billing/projection"} 148.0
+api_request_duration_seconds_sum{endpoint="/api/billing/projection"} 4.209119558334351
+api_request_duration_seconds_bucket{endpoint="/api/reconciliation",le="0.005"} 0.0
+api_request_duration_seconds_bucket{endpoint="/api/reconciliation",le="0.01"} 51.0
+api_request_duration_seconds_bucket{endpoint="/api/reconciliation",le="0.025"} 177.0
+api_request_duration_seconds_bucket{endpoint="/api/reconciliation",le="0.05"} 200.0
+api_request_duration_seconds_bucket{endpoint="/api/reconciliation",le="0.075"} 202.0
+api_request_duration_seconds_bucket{endpoint="/api/reconciliation",le="0.1"} 203.0
+api_request_duration_seconds_bucket{endpoint="/api/reconciliation",le="0.25"} 207.0
+api_request_duration_seconds_bucket{endpoint="/api/reconciliation",le="0.5"} 207.0
+api_request_duration_seconds_bucket{endpoint="/api/reconciliation",le="0.75"} 207.0
+api_request_duration_seconds_bucket{endpoint="/api/reconciliation",le="1.0"} 207.0
+api_request_duration_seconds_bucket{endpoint="/api/reconciliation",le="2.5"} 207.0
+api_request_duration_seconds_bucket{endpoint="/api/reconciliation",le="5.0"} 207.0
+api_request_duration_seconds_bucket{endpoint="/api/reconciliation",le="7.5"} 207.0
+api_request_duration_seconds_bucket{endpoint="/api/reconciliation",le="10.0"} 207.0
+api_request_duration_seconds_bucket{endpoint="/api/reconciliation",le="+Inf"} 207.0
+api_request_duration_seconds_count{endpoint="/api/reconciliation"} 207.0
+api_request_duration_seconds_sum{endpoint="/api/reconciliation"} 3.9562268257141113
+api_request_duration_seconds_bucket{endpoint="/api/billing/summary",le="0.005"} 0.0
+api_request_duration_seconds_bucket{endpoint="/api/billing/summary",le="0.01"} 0.0
+api_request_duration_seconds_bucket{endpoint="/api/billing/summary",le="0.025"} 60.0
+api_request_duration_seconds_bucket{endpoint="/api/billing/summary",le="0.05"} 131.0
+api_request_duration_seconds_bucket{endpoint="/api/billing/summary",le="0.075"} 141.0
+api_request_duration_seconds_bucket{endpoint="/api/billing/summary",le="0.1"} 143.0
+api_request_duration_seconds_bucket{endpoint="/api/billing/summary",le="0.25"} 144.0
+api_request_duration_seconds_bucket{endpoint="/api/billing/summary",le="0.5"} 145.0
+api_request_duration_seconds_bucket{endpoint="/api/billing/summary",le="0.75"} 146.0
+api_request_duration_seconds_bucket{endpoint="/api/billing/summary",le="1.0"} 146.0
+api_request_duration_seconds_bucket{endpoint="/api/billing/summary",le="2.5"} 146.0
+api_request_duration_seconds_bucket{endpoint="/api/billing/summary",le="5.0"} 146.0
+api_request_duration_seconds_bucket{endpoint="/api/billing/summary",le="7.5"} 146.0
+api_request_duration_seconds_bucket{endpoint="/api/billing/summary",le="10.0"} 146.0
+api_request_duration_seconds_bucket{endpoint="/api/billing/summary",le="+Inf"} 146.0
+api_request_duration_seconds_count{endpoint="/api/billing/summary"} 146.0
+api_request_duration_seconds_sum{endpoint="/api/billing/summary"} 5.196617841720581
+api_request_duration_seconds_bucket{endpoint="/api/pipeline/status",le="0.005"} 0.0
+api_request_duration_seconds_bucket{endpoint="/api/pipeline/status",le="0.01"} 0.0
+api_request_duration_seconds_bucket{endpoint="/api/pipeline/status",le="0.025"} 54.0
+api_request_duration_seconds_bucket{endpoint="/api/pipeline/status",le="0.05"} 131.0
+api_request_duration_seconds_bucket{endpoint="/api/pipeline/status",le="0.075"} 142.0
+api_request_duration_seconds_bucket{endpoint="/api/pipeline/status",le="0.1"} 145.0
+api_request_duration_seconds_bucket{endpoint="/api/pipeline/status",le="0.25"} 147.0
+api_request_duration_seconds_bucket{endpoint="/api/pipeline/status",le="0.5"} 147.0
+api_request_duration_seconds_bucket{endpoint="/api/pipeline/status",le="0.75"} 148.0
+api_request_duration_seconds_bucket{endpoint="/api/pipeline/status",le="1.0"} 148.0
+api_request_duration_seconds_bucket{endpoint="/api/pipeline/status",le="2.5"} 148.0
+api_request_duration_seconds_bucket{endpoint="/api/pipeline/status",le="5.0"} 148.0
+api_request_duration_seconds_bucket{endpoint="/api/pipeline/status",le="7.5"} 148.0
+api_request_duration_seconds_bucket{endpoint="/api/pipeline/status",le="10.0"} 148.0
+api_request_duration_seconds_bucket{endpoint="/api/pipeline/status",le="+Inf"} 148.0
+api_request_duration_seconds_count{endpoint="/api/pipeline/status"} 148.0
+api_request_duration_seconds_sum{endpoint="/api/pipeline/status"} 5.56098484992981
+api_request_duration_seconds_bucket{endpoint="/metrics",le="0.005"} 0.0
+api_request_duration_seconds_bucket{endpoint="/metrics",le="0.01"} 0.0
+api_request_duration_seconds_bucket{endpoint="/metrics",le="0.025"} 0.0
+api_request_duration_seconds_bucket{endpoint="/metrics",le="0.05"} 78.0
+api_request_duration_seconds_bucket{endpoint="/metrics",le="0.075"} 91.0
+api_request_duration_seconds_bucket{endpoint="/metrics",le="0.1"} 97.0
+api_request_duration_seconds_bucket{endpoint="/metrics",le="0.25"} 105.0
+api_request_duration_seconds_bucket{endpoint="/metrics",le="0.5"} 108.0
+api_request_duration_seconds_bucket{endpoint="/metrics",le="0.75"} 108.0
+api_request_duration_seconds_bucket{endpoint="/metrics",le="1.0"} 108.0
+api_request_duration_seconds_bucket{endpoint="/metrics",le="2.5"} 109.0
+api_request_duration_seconds_bucket{endpoint="/metrics",le="5.0"} 109.0
+api_request_duration_seconds_bucket{endpoint="/metrics",le="7.5"} 109.0
+api_request_duration_seconds_bucket{endpoint="/metrics",le="10.0"} 109.0
+api_request_duration_seconds_bucket{endpoint="/metrics",le="+Inf"} 109.0
+api_request_duration_seconds_count{endpoint="/metrics"} 109.0
+api_request_duration_seconds_sum{endpoint="/metrics"} 8.00404167175293
+api_request_duration_seconds_bucket{endpoint="static",le="0.005"} 107.0
+api_request_duration_seconds_bucket{endpoint="static",le="0.01"} 107.0
+api_request_duration_seconds_bucket{endpoint="static",le="0.025"} 108.0
+api_request_duration_seconds_bucket{endpoint="static",le="0.05"} 108.0
+api_request_duration_seconds_bucket{endpoint="static",le="0.075"} 108.0
+api_request_duration_seconds_bucket{endpoint="static",le="0.1"} 108.0
+api_request_duration_seconds_bucket{endpoint="static",le="0.25"} 108.0
+api_request_duration_seconds_bucket{endpoint="static",le="0.5"} 108.0
+api_request_duration_seconds_bucket{endpoint="static",le="0.75"} 108.0
+api_request_duration_seconds_bucket{endpoint="static",le="1.0"} 108.0
+api_request_duration_seconds_bucket{endpoint="static",le="2.5"} 108.0
+api_request_duration_seconds_bucket{endpoint="static",le="5.0"} 108.0
+api_request_duration_seconds_bucket{endpoint="static",le="7.5"} 108.0
+api_request_duration_seconds_bucket{endpoint="static",le="10.0"} 108.0
+api_request_duration_seconds_bucket{endpoint="static",le="+Inf"} 108.0
+api_request_duration_seconds_count{endpoint="static"} 108.0
+api_request_duration_seconds_sum{endpoint="static"} -0.26697230339050293
+# HELP api_request_duration_seconds_created API request latency
+# TYPE api_request_duration_seconds_created gauge
+api_request_duration_seconds_created{endpoint="/api/grid/history"} 1.7905007167740464e+09
+api_request_duration_seconds_created{endpoint="/api/billing/daily"} 1.7905007167789342e+09
+api_request_duration_seconds_created{endpoint="/api/alerts"} 1.7905007167840014e+09
+api_request_duration_seconds_created{endpoint="/api/grid/live"} 1.7905007167895002e+09
+api_request_duration_seconds_created{endpoint="/health"} 1.7905007167925534e+09
+api_request_duration_seconds_created{endpoint="/api/billing/projection"} 1.7905007167941976e+09
+api_request_duration_seconds_created{endpoint="/api/reconciliation"} 1.7905007168091526e+09
+api_request_duration_seconds_created{endpoint="/api/billing/summary"} 1.7905007168183532e+09
+api_request_duration_seconds_created{endpoint="/api/pipeline/status"} 1.7905007168288283e+09
+api_request_duration_seconds_created{endpoint="/metrics"} 1.7905007189443102e+09
+api_request_duration_seconds_created{endpoint="static"} 1.7905007294286776e+09
+# HELP alerts_active Open (unresolved) alerts
+# TYPE alerts_active gauge
+# HELP zone_renewable_pct_latest Latest complete-window renewable % per zone
+# TYPE zone_renewable_pct_latest gauge
+zone_renewable_pct_latest{grid_zone="East"} 28.129621862652037
+zone_renewable_pct_latest{grid_zone="North"} 43.20033377983707
+zone_renewable_pct_latest{grid_zone="South"} 14.304354599984423
+zone_renewable_pct_latest{grid_zone="West"} 28.83558543996897
+# HELP zone_load_kwh_latest Latest complete-window consumption (kWh) per zone
+# TYPE zone_load_kwh_latest gauge
+zone_load_kwh_latest{grid_zone="East"} 45.301
+zone_load_kwh_latest{grid_zone="North"} 45.539
+zone_load_kwh_latest{grid_zone="South"} 51.348
+zone_load_kwh_latest{grid_zone="West"} 46.400999999999996
+# HELP pipeline_component_staleness_seconds Seconds since last heartbeat per pipeline component
+# TYPE pipeline_component_staleness_seconds gauge
+pipeline_component_staleness_seconds{component="alerts_engine"} 4.5
+pipeline_component_staleness_seconds{component="meter_producer"} 5.1
+pipeline_component_staleness_seconds{component="speed_layer"} 4.0
+pipeline_component_staleness_seconds{component="tariff_batch_source"} 7.7
+pipeline_component_staleness_seconds{component="batch_layer"} 57.9
+# HELP pipeline_component_stale_budget_seconds Allowed silence before a component is stale
+# TYPE pipeline_component_stale_budget_seconds gauge
+pipeline_component_stale_budget_seconds{component="alerts_engine"} 120.0
+pipeline_component_stale_budget_seconds{component="meter_producer"} 120.0
+pipeline_component_stale_budget_seconds{component="speed_layer"} 120.0
+pipeline_component_stale_budget_seconds{component="tariff_batch_source"} 120.0
+pipeline_component_stale_budget_seconds{component="batch_layer"} 720.0
+# HELP pipeline_component_up 1 if the component is fresh and OK, else 0
+# TYPE pipeline_component_up gauge
+pipeline_component_up{component="alerts_engine"} 1.0
+pipeline_component_up{component="meter_producer"} 1.0
+pipeline_component_up{component="speed_layer"} 1.0
+pipeline_component_up{component="tariff_batch_source"} 1.0
+pipeline_component_up{component="batch_layer"} 1.0
+# HELP stream_events_last_5m Speed-layer events in the last 5 minutes
+# TYPE stream_events_last_5m gauge
+stream_events_last_5m{outcome="clean"} 3631.0
+stream_events_last_5m{outcome="invalid"} 45.0
+stream_events_last_5m{outcome="duplicate"} 3.0
+# HELP stream_invalid_event_rate_pct Quarantined share of events, last 5 minutes
+# TYPE stream_invalid_event_rate_pct gauge
+stream_invalid_event_rate_pct 1.22
+# HELP stream_processing_lag_seconds Avg event-time -> processing lag, recent batches
+# TYPE stream_processing_lag_seconds gauge
+stream_processing_lag_seconds 5.25
+# HELP batch_last_billed_sim_day Most recent simulated day billed by the batch layer
+# TYPE batch_last_billed_sim_day gauge
+batch_last_billed_sim_day 4.0
+# HELP batch_reconciliation_drift_pct Speed vs batch drift % for the last billed day
+# TYPE batch_reconciliation_drift_pct gauge
+batch_reconciliation_drift_pct 0.13578050588171123
+# HELP batch_total_billed_lkr Total billed (LKR) for the last billed day
+# TYPE batch_total_billed_lkr gauge
+batch_total_billed_lkr 48398.41
+# HELP sim_day_current Current simulated day number
+# TYPE sim_day_current gauge
+sim_day_current 5.0

@@ -1,0 +1,46 @@
+{
+  "source": "batch_layer",
+  "sim_day": 4,
+  "zones": [
+    {
+      "grid_zone": "East",
+      "households": 6,
+      "total_consumption_kwh": 567.85,
+      "total_solar_kwh": 70.06,
+      "net_consumption_kwh": 497.79,
+      "avg_solar_contribution_pct": 12.3,
+      "total_billed": 12339.32,
+      "avg_bill": 2056.55
+    },
+    {
+      "grid_zone": "North",
+      "households": 6,
+      "total_consumption_kwh": 558.27,
+      "total_solar_kwh": 70.17,
+      "net_consumption_kwh": 488.1,
+      "avg_solar_contribution_pct": 12.6,
+      "total_billed": 10960.3,
+      "avg_bill": 1826.72
+    },
+    {
+      "grid_zone": "South",
+      "households": 6,
+      "total_consumption_kwh": 562.47,
+      "total_solar_kwh": 25.92,
+      "net_consumption_kwh": 536.55,
+      "avg_solar_contribution_pct": 4.6,
+      "total_billed": 12609.07,
+      "avg_bill": 2101.51
+    },
+    {
+      "grid_zone": "West",
+      "households": 6,
+      "total_consumption_kwh": 552.53,
+      "total_solar_kwh": 35.68,
+      "net_consumption_kwh": 516.85,
+      "avg_solar_contribution_pct": 6.5,
+      "total_billed": 12489.72,
+      "avg_bill": 2081.62
+    }
+  ]
+}

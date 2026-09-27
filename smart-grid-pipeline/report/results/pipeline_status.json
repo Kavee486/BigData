@@ -1,0 +1,62 @@
+{
+  "clock": {
+    "sim_day": 5,
+    "day_fraction": 0.482,
+    "sim_time_of_day": "11:34",
+    "daylight": true,
+    "simulated_day_seconds": 300
+  },
+  "components": {
+    "alerts_engine": {
+      "status": "OK",
+      "age_seconds": 4.4,
+      "stale_after_seconds": 120.0,
+      "detail": "open_alerts=0",
+      "last_heartbeat": "2026-09-27T09:44:34.939261+00:00"
+    },
+    "batch_layer": {
+      "status": "OK",
+      "age_seconds": 57.8,
+      "stale_after_seconds": 720.0,
+      "detail": "sim_day=4 billed=24 run_id=c3ac53295e43",
+      "last_heartbeat": "2026-09-27T09:43:41.524456+00:00"
+    },
+    "meter_producer": {
+      "status": "OK",
+      "age_seconds": 5.0,
+      "stale_after_seconds": 120.0,
+      "detail": "sim_day=5 delivered=10466",
+      "last_heartbeat": "2026-09-27T09:44:34.359274+00:00"
+    },
+    "speed_layer": {
+      "status": "OK",
+      "age_seconds": 3.9,
+      "stale_after_seconds": 120.0,
+      "detail": "batch_id=142 clean=119 invalid=1 dup=0",
+      "last_heartbeat": "2026-09-27T09:44:35.396729+00:00"
+    },
+    "tariff_batch_source": {
+      "status": "OK",
+      "age_seconds": 7.6,
+      "stale_after_seconds": 120.0,
+      "detail": "waiting for end of sim_day=5",
+      "last_heartbeat": "2026-09-27T09:44:31.710359+00:00"
+    }
+  },
+  "stream_quality_last_5m": {
+    "total_events": 3679,
+    "clean_events": 3631,
+    "invalid_events": 45,
+    "duplicate_events": 3,
+    "avg_lag_seconds": 5.25,
+    "max_lag_seconds": 19.238673448562622,
+    "micro_batches": 30,
+    "invalid_rate_pct": 1.22,
+    "invalid_by_reason": {
+      "bad_timestamp": 16,
+      "out_of_range": 12,
+      "missing_field": 10,
+      "negative_value": 7
+    }
+  }
+}

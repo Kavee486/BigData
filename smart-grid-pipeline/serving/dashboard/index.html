@@ -5,121 +5,230 @@
 <title>Smart Grid Monitoring & Billing</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <style>
-  :root { color-scheme: light dark; }
-  body { font-family: -apple-system, Segoe UI, Roboto, sans-serif; margin: 0; padding: 24px; background:#0b1220; color:#e6ecf5; }
-  h1 { font-size: 1.4rem; margin-bottom: 4px; }
-  .sub { color:#8fa2c7; margin-bottom: 20px; font-size:0.9rem; }
-  .grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(220px,1fr)); gap:16px; margin-bottom:24px; }
-  .card { background:#141c2f; border:1px solid #223054; border-radius:10px; padding:16px; }
-  .card h3 { margin:0 0 8px; font-size:0.8rem; text-transform:uppercase; letter-spacing:.05em; color:#8fa2c7; }
-  .metric { font-size:1.8rem; font-weight:600; }
-  .zone-row { display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px solid #223054; font-size:0.9rem; }
-  .badge { padding:2px 8px; border-radius:12px; font-size:0.75rem; font-weight:600; }
-  .ok { background:#16452a; color:#7ee2a8; }
-  .warn { background:#4a3410; color:#f5c56b; }
-  .crit { background:#4a1616; color:#f57b7b; }
-  table { width:100%; border-collapse: collapse; font-size:0.85rem; }
-  th, td { text-align:left; padding:6px 8px; border-bottom:1px solid #223054; }
-  th { color:#8fa2c7; font-weight:600; }
-  #status-pill { float:right; }
-  .section-title { margin-top:8px; margin-bottom:8px; font-size:1.05rem; }
+  :root {
+    --bg:#0b1220; --panel:#141c2f; --line:#223054; --ink:#e6ecf5; --muted:#8fa2c7;
+    --ok:#7ee2a8; --okbg:#16452a; --warn:#f5c56b; --warnbg:#4a3410; --crit:#f57b7b; --critbg:#4a1616;
+    --North:#5b9cf5; --South:#f5a25b; --East:#7ee2a8; --West:#c58af5;
+  }
+  * { box-sizing:border-box; }
+  body { font-family:-apple-system, "Segoe UI", Roboto, sans-serif; margin:0; padding:20px 24px 40px; background:var(--bg); color:var(--ink); }
+  header { display:flex; flex-wrap:wrap; align-items:center; gap:12px; margin-bottom:4px; }
+  h1 { font-size:1.35rem; margin:0; flex:1 1 auto; }
+  .sub { color:var(--muted); font-size:0.85rem; }
+  .clock { font-variant-numeric:tabular-nums; background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:4px 10px; font-size:0.85rem; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(170px,1fr)); gap:12px; margin:16px 0; }
+  .two { display:grid; grid-template-columns:repeat(auto-fit, minmax(420px,1fr)); gap:16px; margin-bottom:16px; }
+  .card { background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:14px 16px; min-width:0; }
+  .card h3 { margin:0 0 10px; font-size:0.75rem; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); display:flex; justify-content:space-between; gap:8px; }
+  .tag { font-size:0.68rem; text-transform:none; letter-spacing:0; border:1px solid var(--line); border-radius:10px; padding:1px 8px; color:var(--muted); }
+  .metric { font-size:1.65rem; font-weight:600; font-variant-numeric:tabular-nums; }
+  .metric small { font-size:0.8rem; color:var(--muted); font-weight:400; }
+  .badge { padding:2px 8px; border-radius:12px; font-size:0.72rem; font-weight:600; white-space:nowrap; }
+  .ok { background:var(--okbg); color:var(--ok); } .warn { background:var(--warnbg); color:var(--warn); } .crit { background:var(--critbg); color:var(--crit); }
+  table { width:100%; border-collapse:collapse; font-size:0.8rem; font-variant-numeric:tabular-nums; }
+  th, td { text-align:left; padding:5px 6px; border-bottom:1px solid var(--line); }
+  th { color:var(--muted); font-weight:600; position:sticky; top:0; background:var(--panel); }
+  td.num, th.num { text-align:right; }
+  .scroll { max-height:330px; overflow:auto; }
+  .zone { display:grid; grid-template-columns:62px 1fr 150px; align-items:center; gap:10px; padding:6px 0; border-bottom:1px solid var(--line); font-size:0.85rem; }
+  .bar { position:relative; height:14px; background:#0e1628; border-radius:7px; overflow:hidden; }
+  .bar > span { position:absolute; left:0; top:0; bottom:0; border-radius:7px; }
+  .bar > i { position:absolute; top:-2px; bottom:-2px; width:2px; background:var(--crit); }
+  .legend { display:flex; gap:12px; font-size:0.75rem; color:var(--muted); margin-top:6px; flex-wrap:wrap; }
+  .legend b { display:inline-block; width:10px; height:10px; border-radius:2px; margin-right:4px; vertical-align:-1px; }
+  svg text { fill:var(--muted); font-size:10px; }
+  .kv { display:grid; grid-template-columns:1fr auto; gap:4px 12px; font-size:0.82rem; }
+  .kv span:nth-child(even) { text-align:right; font-variant-numeric:tabular-nums; }
+  @media (max-width:520px) { body { padding:12px; } .two { grid-template-columns:1fr; } .zone { grid-template-columns:52px 1fr; } .zone .zv { grid-column:1 / -1; } }
 </style>
 </head>
 <body>
-  <h1>⚡ Smart Grid Monitoring & Billing <span id="status-pill" class="badge ok">loading…</span></h1>
-  <div class="sub">Lambda architecture demo — live speed-layer view + batch-layer daily billing. Auto-refreshes every 5s.</div>
+  <header>
+    <h1>⚡ Smart Grid Monitoring &amp; Billing</h1>
+    <span class="clock" id="clock">sim day – · –:–</span>
+    <span id="status-pill" class="badge warn">loading…</span>
+  </header>
+  <div class="sub">Lambda architecture — speed layer (Spark Structured Streaming) for the live grid view, batch layer (Airflow + Spark) for exact daily billing, merged at query time by the API. Refreshes every 5 s.</div>
 
   <div class="grid">
-    <div class="card"><h3>Grid Load (kWh, current window)</h3><div class="metric" id="m-consumption">–</div></div>
-    <div class="card"><h3>Solar Generation (kWh)</h3><div class="metric" id="m-solar">–</div></div>
-    <div class="card"><h3>Renewable Contribution</h3><div class="metric" id="m-renewable">–</div></div>
-    <div class="card"><h3>Open Alerts</h3><div class="metric" id="m-alerts">–</div></div>
+    <div class="card"><h3>Grid load <span class="tag">speed</span></h3><div class="metric" id="m-load">–</div></div>
+    <div class="card"><h3>Solar generation <span class="tag">speed</span></h3><div class="metric" id="m-solar">–</div></div>
+    <div class="card"><h3>Renewable contribution <span class="tag">speed</span></h3><div class="metric" id="m-renew">–</div></div>
+    <div class="card"><h3>Open alerts</h3><div class="metric" id="m-alerts">–</div></div>
+    <div class="card"><h3>Provisional bills today <span class="tag">merge</span></h3><div class="metric" id="m-prov">–</div></div>
+    <div class="card"><h3>Last billed day <span class="tag">batch</span></h3><div class="metric" id="m-billed">–</div></div>
   </div>
 
-  <div class="card" style="margin-bottom:24px;">
-    <h3 class="section-title">Load & Renewable % by Zone</h3>
-    <div id="zones"></div>
+  <div class="two">
+    <div class="card">
+      <h3>Renewable % and load by zone <span class="tag">latest complete 30 s window</span></h3>
+      <div id="zones"></div>
+      <div class="legend"><span><b style="background:var(--crit)"></b>alert threshold</span><span id="daylight-note"></span></div>
+    </div>
+    <div class="card">
+      <h3>Renewable % by zone — last 15 min <span class="tag">speed</span></h3>
+      <svg id="chart" viewBox="0 0 520 200" width="100%" role="img" aria-label="Renewable percentage history per zone"></svg>
+      <div class="legend" id="chart-legend"></div>
+    </div>
   </div>
 
-  <div class="card" style="margin-bottom:24px;">
-    <h3 class="section-title">Active Alerts</h3>
-    <table id="alerts-table"><thead><tr><th>Type</th><th>Scope</th><th>Severity</th><th>Message</th><th>Triggered</th></tr></thead><tbody></tbody></table>
+  <div class="two">
+    <div class="card">
+      <h3>Active alerts <span class="tag">rule engine</span></h3>
+      <div class="scroll"><table id="alerts-table"><thead><tr><th>Type</th><th>Scope</th><th>Severity</th><th>Message</th><th>Since</th></tr></thead><tbody></tbody></table></div>
+    </div>
+    <div class="card">
+      <h3>Pipeline health <span class="tag">heartbeats · last 5 min</span></h3>
+      <table id="health-table"><thead><tr><th>Component</th><th>Status</th><th class="num">Last beat</th><th>Detail</th></tr></thead><tbody></tbody></table>
+      <div class="kv" id="quality" style="margin-top:10px"></div>
+    </div>
   </div>
 
-  <div class="card">
-    <h3 class="section-title">Latest Daily Billing Report (batch layer)</h3>
-    <table id="billing-table"><thead><tr><th>Household</th><th>Zone</th><th>Consumption (kWh)</th><th>Solar (kWh)</th><th>Net (kWh)</th><th>Tariff</th><th>Tier</th><th>Subsidy</th><th>Bill</th></tr></thead><tbody></tbody></table>
-    <div class="sub" id="billing-total"></div>
+  <div class="card" style="margin-bottom:16px">
+    <h3>Today's provisional bills <span class="tag">Lambda merge: speed-layer consumption × batch-validated tariff</span></h3>
+    <div class="scroll"><table id="prov-table"><thead><tr><th>Household</th><th>Zone</th><th class="num">Consumption kWh</th><th class="num">Solar kWh</th><th class="num">Net kWh</th><th class="num">Tariff</th><th class="num">Provisional bill</th><th class="num">Last final bill</th></tr></thead><tbody></tbody></table></div>
+  </div>
+
+  <div class="two">
+    <div class="card">
+      <h3>Daily billing report <span class="tag" id="billing-day">batch</span></h3>
+      <div class="scroll"><table id="billing-table"><thead><tr><th>Household</th><th>Zone</th><th>Tier</th><th class="num">Net kWh</th><th class="num">Solar %</th><th class="num">Tariff</th><th>Source</th><th class="num">Bill (LKR)</th></tr></thead><tbody></tbody></table></div>
+      <div class="sub" id="billing-total" style="margin-top:8px"></div>
+    </div>
+    <div class="card">
+      <h3>Zone roll-up &amp; speed/batch reconciliation <span class="tag">batch</span></h3>
+      <table id="summary-table"><thead><tr><th>Zone</th><th class="num">Households</th><th class="num">kWh</th><th class="num">Solar kWh</th><th class="num">Avg solar %</th><th class="num">Billed</th></tr></thead><tbody></tbody></table>
+      <div class="kv" id="recon" style="margin-top:12px"></div>
+    </div>
   </div>
 
 <script>
-async function fetchJSON(path) {
-  const res = await fetch(path);
-  return res.json();
-}
+const ZONES = ["North", "South", "East", "West"];
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const n = (v, d = 2) => v === null || v === undefined ? "–" : Number(v).toFixed(d);
+const money = v => v === null || v === undefined ? "–" : Number(v).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+const ago = s => s < 90 ? `${Math.round(s)} s` : `${(s / 60).toFixed(1)} min`;
+const sevClass = s => s === "CRITICAL" ? "crit" : s === "WARNING" ? "warn" : "ok";
+async function get(path) { const r = await fetch(path); if (!r.ok) throw new Error(path + " " + r.status); return r.json(); }
 
-function badgeClass(sev) {
-  if (sev === 'CRITICAL') return 'crit';
-  if (sev === 'WARNING') return 'warn';
-  return 'ok';
+function drawChart(series, threshold) {
+  const svg = document.getElementById("chart");
+  const W = 520, H = 200, L = 34, R = 8, T = 8, B = 22;
+  const all = Object.values(series).flat();
+  if (!all.length) { svg.innerHTML = `<text x="${W/2}" y="${H/2}" text-anchor="middle">waiting for streaming windows…</text>`; return; }
+  const ts = all.map(p => Date.parse(p.window_end));
+  const t0 = Math.min(...ts), t1 = Math.max(...ts, t0 + 1);
+  const x = t => L + (t - t0) / (t1 - t0) * (W - L - R);
+  const y = v => T + (1 - v / 100) * (H - T - B);
+  let out = "";
+  for (const v of [0, 25, 50, 75, 100]) out += `<line x1="${L}" x2="${W-R}" y1="${y(v)}" y2="${y(v)}" stroke="#223054"/><text x="${L-4}" y="${y(v)+3}" text-anchor="end">${v}%</text>`;
+  out += `<line x1="${L}" x2="${W-R}" y1="${y(threshold)}" y2="${y(threshold)}" stroke="var(--crit)" stroke-dasharray="4 3"/>`;
+  for (const z of ZONES) {
+    const pts = (series[z] || []).map(p => `${x(Date.parse(p.window_end)).toFixed(1)},${y(Math.min(100, p.renewable_pct)).toFixed(1)}`);
+    if (pts.length) out += `<polyline fill="none" stroke="var(--${z})" stroke-width="2" points="${pts.join(" ")}"/>`;
+  }
+  const fmt = t => new Date(t).toLocaleTimeString([], {hour: "2-digit", minute: "2-digit"});
+  out += `<text x="${L}" y="${H-6}">${fmt(t0)}</text><text x="${W-R}" y="${H-6}" text-anchor="end">${fmt(t1)}</text>`;
+  svg.innerHTML = out;
+  document.getElementById("chart-legend").innerHTML = ZONES.map(z => `<span><b style="background:var(--${z})"></b>${z}</span>`).join("");
 }
 
 async function refresh() {
-  try {
-    const [live, alerts, billing, health] = await Promise.all([
-      fetchJSON('/api/grid/live'),
-      fetchJSON('/api/alerts'),
-      fetchJSON('/api/billing/daily'),
-      fetchJSON('/health'),
-    ]);
+  const results = await Promise.allSettled([
+    get("/api/grid/live"), get("/api/alerts"), get("/api/billing/daily"), get("/health"),
+    get("/api/grid/history?minutes=15"), get("/api/billing/projection"), get("/api/billing/summary"),
+    get("/api/reconciliation?limit=1"), get("/api/pipeline/status"),
+  ]);
+  const [live, alerts, billing, health, history, proj, summary, recon, status] = results.map(r => r.status === "fulfilled" ? r.value : null);
 
-    document.getElementById('m-consumption').textContent = live.grid_total_consumption_kwh.toFixed(2);
-    document.getElementById('m-solar').textContent = live.grid_total_solar_kwh.toFixed(2);
-    document.getElementById('m-renewable').textContent = live.grid_renewable_pct.toFixed(1) + '%';
-    document.getElementById('m-alerts').textContent = alerts.count;
+  if (health) {
+    const pill = document.getElementById("status-pill");
+    pill.textContent = "pipeline " + health.status;
+    pill.className = "badge " + (health.status === "OK" ? "ok" : "crit");
+    const c = health.clock;
+    document.getElementById("clock").textContent = `sim day ${c.sim_day} · ${c.sim_time_of_day} ${c.daylight ? "☀" : "☾"}`;
+    document.getElementById("daylight-note").textContent = c.daylight ? "daylight: renewable rule active" : "night: renewable rule paused (0% solar expected)";
+  }
 
-    const pill = document.getElementById('status-pill');
-    pill.textContent = health.status;
-    pill.className = 'badge ' + (health.status === 'OK' ? 'ok' : 'crit');
+  if (live) {
+    document.getElementById("m-load").innerHTML = `${n(live.grid_total_consumption_kwh)} <small>kWh / 30 s</small>`;
+    document.getElementById("m-solar").innerHTML = `${n(live.grid_total_solar_kwh)} <small>kWh / 30 s</small>`;
+    document.getElementById("m-renew").textContent = n(live.grid_renewable_pct, 1) + "%";
+    const maxLoad = Math.max(1, ...live.zones.map(z => z.total_consumption_kwh));
+    document.getElementById("zones").innerHTML = live.zones.map(z => `
+      <div class="zone">
+        <span>${esc(z.grid_zone)}</span>
+        <div class="bar" title="renewable ${n(z.renewable_pct,1)}%"><span style="width:${Math.min(100, z.renewable_pct)}%;background:var(--${esc(z.grid_zone)})"></span><i style="left:${live.low_renewable_threshold_pct}%"></i></div>
+        <span class="zv">${n(z.renewable_pct,1)}% renewable · ${n(z.total_consumption_kwh)} kWh ${z.low_renewable ? '<span class="badge warn">low</span>' : ""}</span>
+      </div>`).join("") || '<div class="sub">No windows yet — waiting for streaming data…</div>';
+  }
+  if (history && live) drawChart(history.series, live.low_renewable_threshold_pct);
 
-    const zonesDiv = document.getElementById('zones');
-    zonesDiv.innerHTML = live.zones.map(z => `
-      <div class="zone-row">
-        <span>${z.grid_zone}</span>
-        <span>${Number(z.total_consumption_kwh).toFixed(2)} kWh load · ${Number(z.renewable_pct).toFixed(1)}% renewable</span>
-      </div>`).join('') || '<div class="sub">No windows yet — waiting for streaming data…</div>';
+  if (alerts) {
+    document.getElementById("m-alerts").textContent = alerts.count;
+    document.querySelector("#alerts-table tbody").innerHTML = alerts.alerts.map(a => `
+      <tr><td>${esc(a.alert_type)}</td><td>${esc(a.scope)}</td>
+      <td><span class="badge ${sevClass(a.severity)}">${esc(a.severity)}</span></td>
+      <td>${esc(a.message)}</td><td>${new Date(a.triggered_at).toLocaleTimeString()}</td></tr>`).join("")
+      || '<tr><td colspan="5" class="sub">No active alerts</td></tr>';
+  }
 
-    const alertsBody = document.querySelector('#alerts-table tbody');
-    alertsBody.innerHTML = alerts.alerts.map(a => `
-      <tr>
-        <td>${a.alert_type}</td><td>${a.scope}</td>
-        <td><span class="badge ${badgeClass(a.severity)}">${a.severity}</span></td>
-        <td>${a.message}</td>
-        <td>${new Date(a.triggered_at).toLocaleTimeString()}</td>
-      </tr>`).join('') || '<tr><td colspan="5" class="sub">No active alerts</td></tr>';
+  if (status) {
+    document.querySelector("#health-table tbody").innerHTML = Object.entries(status.components).map(([name, c]) => `
+      <tr><td>${esc(name)}</td><td><span class="badge ${c.status === "OK" ? "ok" : "crit"}">${esc(c.status)}</span></td>
+      <td class="num">${ago(c.age_seconds)} ago</td><td class="sub">${esc(c.detail)}</td></tr>`).join("");
+    const q = status.stream_quality_last_5m;
+    const reasons = Object.entries(q.invalid_by_reason).map(([k, v]) => `${k}: ${v}`).join(", ") || "none";
+    document.getElementById("quality").innerHTML = `
+      <span>Events processed</span><span>${q.total_events}</span>
+      <span>Quarantined (invalid)</span><span>${q.invalid_events} (${n(q.invalid_rate_pct,2)}%)</span>
+      <span>Duplicates dropped</span><span>${q.duplicate_events}</span>
+      <span>Invalid by reason</span><span>${esc(reasons)}</span>
+      <span>Avg event→sink lag</span><span>${q.avg_lag_seconds === null ? "–" : n(q.avg_lag_seconds,1) + " s"}</span>`;
+  }
 
-    const billingBody = document.querySelector('#billing-table tbody');
-    billingBody.innerHTML = billing.rows.map(r => `
-      <tr>
-        <td>${r.household_id}</td><td>${r.grid_zone}</td>
-        <td>${Number(r.total_consumption_kwh).toFixed(2)}</td>
-        <td>${Number(r.total_solar_kwh).toFixed(2)}</td>
-        <td>${Number(r.net_consumption_kwh).toFixed(2)}</td>
-        <td>${Number(r.tariff_rate).toFixed(2)}</td>
-        <td>${r.billing_tier}</td>
-        <td>${r.subsidy_flag ? 'Yes' : 'No'}</td>
-        <td>${Number(r.bill_amount).toFixed(2)}</td>
-      </tr>`).join('') || '<tr><td colspan="9" class="sub">No billing report yet — waiting for the first batch run…</td></tr>';
-    document.getElementById('billing-total').textContent = billing.rows.length
-      ? `Households billed: ${billing.count} · Total billed: ${billing.total_billed}`
-      : '';
-  } catch (e) {
-    console.error(e);
+  if (proj) {
+    document.getElementById("m-prov").innerHTML = `${money(proj.total_provisional)} <small>LKR</small>`;
+    document.querySelector("#prov-table tbody").innerHTML = proj.rows.map(r => `
+      <tr><td>${esc(r.household_id)}</td><td>${esc(r.grid_zone)}</td>
+      <td class="num">${n(r.consumption_kwh)}</td><td class="num">${n(r.solar_kwh)}</td><td class="num">${n(r.net_consumption_kwh)}</td>
+      <td class="num">${n(r.tariff_rate)}</td>
+      <td class="num">${r.provisional_bill_so_far === null ? '<span class="sub">awaiting tariff</span>' : money(r.provisional_bill_so_far)}</td>
+      <td class="num">${r.last_final_bill === null ? "–" : money(r.last_final_bill) + ` <span class="sub">(d${r.last_final_sim_day})</span>`}</td></tr>`).join("")
+      || '<tr><td colspan="8" class="sub">No readings for the current simulated day yet…</td></tr>';
+  }
+
+  if (billing) {
+    document.getElementById("billing-day").textContent = billing.sim_day === null ? "batch · none yet" : `batch · sim day ${billing.sim_day}`;
+    document.getElementById("m-billed").innerHTML = billing.sim_day === null ? "–" : `${money(billing.total_billed)} <small>LKR · d${billing.sim_day}</small>`;
+    document.querySelector("#billing-table tbody").innerHTML = billing.rows.map(r => `
+      <tr><td>${esc(r.household_id)}</td><td>${esc(r.grid_zone)}</td><td>${esc(r.billing_tier.replace("residential_", ""))}</td>
+      <td class="num">${n(r.net_consumption_kwh)}</td><td class="num">${n(r.solar_contribution_pct,1)}</td><td class="num">${n(r.tariff_rate)}</td>
+      <td>${r.tariff_source === "current_day" ? "today" : '<span class="badge warn">fallback</span>'}${r.subsidy_flag ? ' <span class="badge ok">subsidy</span>' : ""}</td>
+      <td class="num">${money(r.bill_amount)}</td></tr>`).join("")
+      || '<tr><td colspan="8" class="sub">No billing report yet — the first one appears shortly after simulated day 0 ends.</td></tr>';
+    document.getElementById("billing-total").textContent = billing.count ? `Households billed: ${billing.count} · Total billed: LKR ${money(billing.total_billed)}` : "";
+  }
+
+  if (summary) {
+    document.querySelector("#summary-table tbody").innerHTML = summary.zones.map(z => `
+      <tr><td>${esc(z.grid_zone)}</td><td class="num">${z.households}</td><td class="num">${n(z.total_consumption_kwh)}</td>
+      <td class="num">${n(z.total_solar_kwh)}</td><td class="num">${n(z.avg_solar_contribution_pct,1)}</td><td class="num">${money(z.total_billed)}</td></tr>`).join("")
+      || '<tr><td colspan="6" class="sub">–</td></tr>';
+  }
+  if (recon && recon.rows.length) {
+    const r = recon.rows[0];
+    document.getElementById("recon").innerHTML = `
+      <span>Sim day ${r.sim_day}: batch (exact) consumption</span><span>${n(r.batch_consumption_kwh)} kWh</span>
+      <span>Speed-layer running total</span><span>${n(r.speed_consumption_kwh)} kWh</span>
+      <span>Speed vs batch drift</span><span>${n(r.drift_pct, 2)}%</span>
+      <span>Raw events / duplicates removed</span><span>${r.raw_events} / ${r.duplicates_removed}</span>
+      <span>Tariff rows: invalid / duplicate / fallback used</span><span>${r.invalid_tariff_rows} / ${r.duplicate_tariff_rows} / ${r.fallback_tariffs}</span>`;
   }
 }
 
 refresh();
-setInterval(refresh, 5000);
+setInterval(() => refresh().catch(console.error), 5000);
 </script>
 </body>
 </html>

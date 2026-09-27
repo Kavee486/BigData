@@ -1,14 +1,23 @@
-# Spark image used for both the speed-layer structured-streaming job and the
-# batch-layer job invoked from Airflow. Based on bitnami/spark so spark-submit,
-# a matching JVM, and Hadoop client libs are already present.
-FROM bitnami/spark:3.5.1
+# Spark Structured Streaming speed layer. Spark is taken from the official
+# pyspark wheel (includes spark-submit) on a slim Python + JRE 17 base, so the
+# image does not depend on any third-party Spark distribution image.
+FROM python:3.11-slim-bookworm
 
-USER root
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends openjdk-17-jre-headless procps \
+    && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app
+COPY requirements-spark.txt .
+RUN pip install --no-cache-dir -r requirements-spark.txt
 
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# Resolve the Kafka connector once at build time into a fixed Ivy cache, so
+# container start-up does not depend on Maven Central being reachable.
+ENV SPARK_KAFKA_PACKAGE=org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.1 \
+    SPARK_IVY_DIR=/opt/ivy
+RUN echo "" > /tmp/noop.py \
+    && spark-submit --conf spark.jars.ivy=${SPARK_IVY_DIR} --packages ${SPARK_KAFKA_PACKAGE} /tmp/noop.py
 
 COPY . .
-
-ENV PYTHONPATH=/app
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONPATH=/app

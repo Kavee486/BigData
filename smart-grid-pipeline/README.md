@@ -1,171 +1,188 @@
 # Smart Grid Energy Monitoring & Billing — Lambda Architecture Pipeline
 
-EC8203 Applied Big Data Engineering — Mini Project.
+EC8203 Applied Big Data Engineering — Mini Project (Use Case 3).
 
 An end-to-end data platform that ingests smart-meter telemetry in real time
-and daily tariff/billing reference files in batch, then answers:
+(Kafka → Spark Structured Streaming) and a daily tariff/billing extract in
+batch (Airflow → Spark), stores both in a Parquet lake + PostgreSQL, and
+serves a live dashboard, a REST API and scheduled daily report files that
+answer:
 
 > **What is the current grid load and renewable contribution by zone, and
 > what will each household's bill look like once daily tariff data is
 > applied to their consumption?**
 
-## Architecture: Lambda
+The full technical report is in [`report/EC8203_MiniProject_Report.pdf`](report/EC8203_MiniProject_Report.pdf).
 
-We use a **Lambda architecture**: a speed layer gives an approximate,
-low-latency real-time view of grid load/renewable mix; a batch layer
-recomputes an accurate daily view from the immutable raw event log and joins
-it with the tariff feed to produce bills. Both views are merged at query
-time by the serving API. Full justification (vs. Kappa) is in `report/`.
+![Architecture](report/architecture_diagram.png)
 
-```
-                       ┌──────────────────────┐
- smart_meter_producer  │        Kafka          │
-   (streaming source) ─▶  smart-meter-readings │
-                       └──────────┬────────────┘
-                                  │
-                    ┌─────────────┴─────────────┐
-                    ▼                           ▼
-         SPEED LAYER (Spark Structured    Raw event archive
-         Streaming, windowed agg by       (Parquet data lake,
-         grid_zone) ── every ~10s              partitioned by
-                    │                           sim_day)
-                    ▼                                │
-          Postgres: live_zone_metrics                │
-                    │                                ▼
-                    │                    BATCH LAYER (Spark batch,
- tariff_batch_source│                    Airflow-orchestrated once
- (daily-batch       │                    per simulated day):
-  source) ──────────┼──▶ tariff CSV ──▶  recompute household daily
-                    │    drop             totals + join tariff
-                    │                     ──▶ daily_billing_report
-                    ▼                                │
-        ┌───────────────────────────────────────────┘
-        ▼
-  Postgres (serving DB): live_zone_metrics, alerts,
-  household_daily_consumption, tariff_reference,
-  daily_billing_report, pipeline_health
-        │
-        ▼
-  FastAPI serving layer  ──▶  Dashboard (static HTML/JS)
-  /api/grid/live, /api/alerts, /api/billing/daily, /health, /metrics
-```
+## Architecture: Lambda (and why not Kappa)
 
-## Tech stack & why
+| Layer | What it does here | Guarantees |
+|---|---|---|
+| **Speed** | Spark Structured Streaming reads Kafka, validates events, computes 30 s windows (15 s slide, 1 min watermark) of load / solar / renewable % per zone, appends clean events to the Parquet lake, keeps running per-household totals | seconds of latency, **approximate** (dedup only within a micro-batch, additive totals) |
+| **Batch** | Airflow runs a Spark job for every finished simulated day: global dedup on `event_id`, exact household totals from the immutable lake, tariff validation + fallback, join, bill, reconciliation against the speed layer | **exact and replayable** (idempotent per-day overwrite in one transaction) |
+| **Serving** | FastAPI merges both views at query time — e.g. `/api/billing/projection` = speed-layer consumption × batch-validated tariff | |
+
+Kappa was rejected because the tariff feed is a once-a-day snapshot, not a
+stream; billing needs an exact, auditable, cheaply re-runnable daily
+recomputation (re-read one lake partition instead of replaying the whole
+Kafka log); and a single stateful streaming job joining a continuous stream
+with a daily file would be harder to get right and to test. Full argument in
+the report (section 2).
+
+## Tech stack
 
 | Layer | Tool | Why (tied to this use case) |
 |---|---|---|
-| Ingestion | **Apache Kafka** | Durable, replayable buffer for high-frequency meter telemetry; partitioned so per-zone/per-household ordering and parallel consumption both work; the raw log Kafka retains is also what makes recomputation (batch layer) possible. |
-| Stream processing | **Spark Structured Streaming** | Native windowed aggregation over Kafka with watermarking, same Spark API reused for the batch job (one processing engine, less operational surface, easy to reason about consistency between speed/batch views). |
-| Orchestration | **Apache Airflow** | Daily tariff reconciliation is a classic scheduled DAG with a clear dependency chain (wait for file → join → alert-check → notify); retries/backfill/observability of the *batch* pipeline come for free. |
-| Storage/serving | **PostgreSQL** | All outputs (zone metrics, alerts, billing) are small, relational, and need to be queried with filters/joins by the API — Postgres is the simplest correct fit; no need for Cassandra's write-heavy wide-column model or HDFS's file-oriented access here. |
-| Data lake (batch source of truth) | **Parquet on local volume** | Cheap immutable, columnar archive of raw events that the batch layer re-reads to compute the accurate view — the defining requirement of Lambda's batch layer. |
-| Serving | **FastAPI** | Thin, fast, typed REST layer over Postgres; merges speed + batch views at query time. |
-| Observability | **JSON structured logging + Prometheus metrics + custom alert rules** | Every stage logs uniformly parseable events; `/metrics` exposes counters/gauges; a lightweight rule engine flags low-renewable zones and stalled components. |
+| Ingestion | **Apache Kafka 3.7 (KRaft)** — topic `smart-meter-readings`, 3 partitions, key = `household_id` | durable, replayable buffer for high-frequency telemetry; keying preserves per-household order while spreading load across partitions; 7-day retention lets the speed layer recover after downtime |
+| Stream processing | **Spark Structured Streaming 3.5** | event-time windows + watermarks for late data, checkpointed offsets, and the *same* engine/DataFrame API as the batch job |
+| Orchestration | **Apache Airflow 2.9** | the daily reconciliation is a dependency chain (wait for file → Spark job → report → alert check) that needs retries, backfill and a UI |
+| Batch source of truth | **Parquet data lake**, partitioned by `sim_day` | immutable, columnar, and the batch job reads exactly one partition per day |
+| Serving store | **PostgreSQL 16** | small, relational outputs queried with filters/joins; upserts + transactions make both layers idempotent |
+| Serving | **FastAPI** + static dashboard | typed REST API with OpenAPI docs at `/docs`; the dashboard only uses the public API |
+| Observability | JSON logs, heartbeats, rule engine, **Prometheus** | see below |
 
 ## Repository layout
 
 ```
-config.py                     # single source of config, env-var overridable
-sources/                      # simulated data sources
-  smart_meter_producer.py     #   streaming: Kafka producer
-  tariff_batch_source.py      #   daily-batch: CSV drop
+config.py                       # single source of configuration (env-var overridable)
+common/sim_clock.py             # shared simulated clock (epoch stored in Postgres)
+sources/
+  smart_meter_producer.py       # streaming source -> Kafka (+ Prometheus metrics :8001)
+  tariff_batch_source.py        # daily-batch source -> CSV drop + _SUCCESS marker
 processing/
-  speed_layer_spark.py        # Structured Streaming: windowed agg + raw archive
-  batch_layer_spark.py        # batch: recompute + join + bill
-  billing_rules.py            # pure billing formula (unit-tested)
-airflow/dags/
-  daily_batch_pipeline_dag.py # orchestrates the batch layer once/sim-day
+  speed_layer_spark.py          # Structured Streaming: validate, window, lake, running totals
+  batch_layer_spark.py          # Spark batch: dedup, exact totals, tariff join, bill, reconcile
+  quality_rules.py              # data-quality rules (shared by Spark + tests)
+  billing_rules.py              # billing formula (shared by Spark, API + tests)
+airflow/dags/daily_batch_pipeline_dag.py
 serving/
-  api/main.py                 # FastAPI: live view, alerts, billing, health, metrics
-  dashboard/index.html         # static live dashboard
+  api/main.py                   # FastAPI serving layer (speed, batch, merge, observability)
+  dashboard/index.html          # live dashboard
+  report_generator.py           # scheduled daily CSV + HTML report files
 observability/
-  logging_config.py           # shared JSON logger
-  alerts.py                    # threshold + no-data alert engine
-  metrics.py                   # Prometheus registry
-storage/init.sql               # Postgres schema
-tests/                         # pure-Python unit tests (no infra required)
-docker-compose.yml
-Dockerfile.app / .spark / .airflow
+  logging_config.py             # structured JSON logging
+  heartbeat.py                  # component heartbeats -> pipeline_health
+  alerts.py                     # alert rule engine
+  metrics.py                    # Prometheus metric definitions
+  prometheus/                   # prometheus.yml + alert_rules.yml
+storage/init.sql                # PostgreSQL schema
+scripts/smoke_test.py           # end-to-end check against the running stack
+tests/                          # unit tests (no infrastructure needed)
+report/                         # report PDF/DOCX, diagrams, screenshots, generators
+docker-compose.yml, Dockerfile.app / .spark / .airflow, .env.example
 ```
 
-## Simulated clock
+## Simulated clock and assumptions
 
-`SIMULATED_DAY_SECONDS=300` by default — **1 simulated day = 5 minutes of
-real time**. The batch source drops one tariff file every simulated day; the
-Airflow DAG is scheduled on the same interval so a full day/batch cycle can
-be observed within a single short demo session. Meter readings are emitted
-every `METER_EMIT_INTERVAL_SECONDS=2` seconds per household. Both are
-configurable via environment variables in `docker-compose.yml`.
+* **1 simulated day = 300 s (5 min) of real time** (`SIMULATED_DAY_SECONDS`).
+  Day numbering is anchored to one epoch written to Postgres (`sim_clock`)
+  when the database is created, so every container agrees on
+  `sim_day = floor((event_time − epoch) / 300 s)`. Day fraction 0.5 = noon.
+* Each of 24 households (4 zones) emits a reading every 2 s. Consumption has
+  morning/evening peaks; solar follows a daylight curve scaled by zone
+  capacity (South has few panels) and daily cloud cover; each day one zone
+  gets an overcast spell (this drives the `LOW_RENEWABLE` alert).
+* ~1% of events are deliberately dirty (missing field, negative, impossible
+  value, bad timestamp, duplicate); ~1 in 3 tariff files contains an invalid
+  row and some contain a duplicated household. The pipeline must handle them.
+* The tariff extract for day *N* is published 20 s after day *N* ends; the
+  bill for day *N* is therefore available ~1 min after the day closes.
+* Billing: `bill = max(consumption − solar, 0) × tariff × (1 − 15% if subsidised)`;
+  no export credit. Renewable contribution = solar ÷ demand (capped at 100%).
+* Currency is LKR; all data is synthetic.
 
 ## Running it
 
-Requires Docker Desktop.
+Requires Docker Desktop (≈6 GB RAM for Docker) and free ports 8000, 8001,
+8080, 9090, 4040, 5433, 29092.
 
 ```bash
-docker compose up --build
+docker compose up --build -d
 ```
 
-This starts, in dependency order: Zookeeper, Kafka, Postgres (auto-applies
-`storage/init.sql`), the two simulated sources, the Spark speed-layer
-streaming job, the alerts engine, the FastAPI serving layer, and Airflow
-(standalone mode, SequentialExecutor — a mini-project simplification; see
-Limitations).
+| What | URL |
+|---|---|
+| Dashboard | http://localhost:8000/ |
+| API docs (OpenAPI) | http://localhost:8000/docs |
+| Airflow UI (`admin` / `admin`) | http://localhost:8080 — DAG `daily_batch_pipeline` is unpaused automatically |
+| Prometheus (targets, alert rules) | http://localhost:9090/alerts |
+| Spark UI (streaming queries) | http://localhost:4040 |
+| Producer metrics | http://localhost:8001/ |
+| PostgreSQL | `localhost:5433`, db/user/password `smartgrid` |
 
-- **Dashboard**: http://localhost:8000/
-- **API docs**: http://localhost:8000/docs
-- **Airflow UI**: http://localhost:8080 (user `admin` / password `admin`) — enable the `daily_batch_pipeline` DAG.
-- **Metrics**: http://localhost:8000/metrics
+Live data appears within ~30 s. The first daily bill appears ~6 minutes
+after start-up (end of sim-day 0 + 20 s grace + the next DAG poll); report
+files are written to `./reports/`.
 
-Wait ~30-60s after `up` for Kafka to become healthy before the producer and
-speed layer connect (they retry automatically — see their logs).
-
-### Watching it work end to end
+### Reproducing the results
 
 ```bash
-docker compose logs -f meter-producer spark-speed-layer
+python scripts/smoke_test.py --wait-billing   # end-to-end checks, exits 0 on success
+docker compose logs -f spark-speed-layer      # JSON logs of every micro-batch
+docker compose exec postgres psql -U smartgrid -c "SELECT * FROM batch_reconciliation ORDER BY sim_day;"
 ```
 
-Within a few seconds you should see `live_zone_metrics` populate — refresh
-the dashboard to see live load/renewable % per zone. After one simulated day
-(default 5 minutes), `tariff-batch-source` drops a CSV, the Airflow DAG's
-sensor picks it up, runs the batch Spark job, and the dashboard's "Latest
-Daily Billing Report" table populates.
+### Failure drills (observability demo)
 
-### Running tests
+```bash
+docker compose stop meter-producer   # -> NO_DATA alerts for producer + speed layer within ~2 min, /health DEGRADED
+docker compose start meter-producer  # -> alerts auto-resolve
+```
+
+### Tests
 
 ```bash
 pip install -r requirements.txt
-pytest tests/ -v
+pytest tests -v        # 44 unit tests, no Docker needed
 ```
 
-(The included tests are infra-free — they exercise the simulators' value
-ranges and the billing arithmetic directly, so they run without Docker.)
+### Tear down
+
+```bash
+docker compose down        # keep data
+docker compose down -v     # also delete Kafka / Postgres / lake volumes (fresh sim clock)
+```
 
 ## Observability
 
-- **Structured logging**: every component (`sources/*`, `processing/*`,
-  `serving/api`, `observability/alerts.py`) logs JSON lines via
-  `observability/logging_config.py` to stdout and `/logs/<component>.log`.
-- **Metrics**: `GET /metrics` (Prometheus text format) exposes request
-  counts, active alert count, per-zone renewable %, and per-component
-  pipeline staleness.
-- **Health check**: `GET /health` reports `OK`/`DEGRADED` per component
-  based on `pipeline_health.last_heartbeat` freshness.
-- **Alert rules** (`observability/alerts.py`, also run once per Airflow DAG
-  run): `LOW_RENEWABLE` (a zone's renewable contribution drops below
-  `LOW_RENEWABLE_PCT_THRESHOLD`) and `NO_DATA` (a component hasn't
-  heartbeat in `NO_DATA_ALERT_MINUTES`). Alerts are deduplicated with a
-  60s cooldown and served at `GET /api/alerts`.
+* **Structured logging** — every stage logs one JSON object per event to
+  stdout and `./logs/<component>.log`, with correlation fields (`sim_day`,
+  `batch_id`, `run_id`, `event_id`, `household_id`).
+* **Metrics** — `GET /metrics` (API) exports component staleness, per-zone
+  renewable % and load, stream volume / invalid rate / lag, reconciliation
+  drift, open alerts by type, request counts/latency. The producer exports
+  delivery counters on `:8001`. Prometheus scrapes both.
+* **Health** — `GET /health`: per-component heartbeat freshness against a
+  per-component budget (the batch layer is allowed to be silent for a day).
+* **Alert rules** — `observability/alerts.py` (runs every 15 s and after each
+  batch run) + the equivalent Prometheus rules in
+  `observability/prometheus/alert_rules.yml`:
 
-## Limitations & what's simplified
+| Rule | Condition |
+|---|---|
+| `LOW_RENEWABLE` | zone renewable % < 10% during simulated daylight |
+| `NO_DATA` | component heartbeat older than its budget (2 min for streaming components) |
+| `COMPONENT_FAILED` | component reported a failure (e.g. batch job exception) |
+| `HIGH_INVALID_RATE` | > 5% of events quarantined in the last 5 min |
+| `HIGH_STREAM_LAG` | event-time → sink lag > 60 s |
+| `RECONCILIATION_DRIFT` | speed vs batch daily consumption differ by > 10% |
+| `PIPELINE_TASK_FAILED` | an Airflow task failed (on_failure_callback) |
 
-See `report/` for the full discussion; in short: Airflow runs in
-single-node SequentialExecutor/SQLite mode (fine for this demo scale, not
-production-grade); the data lake is a local Docker volume rather than
-HDFS/S3; there's no exactly-once end-to-end guarantee (at-least-once via
-Kafka + idempotent upserts is used instead); and the alert engine is a
-polling loop rather than a dedicated monitoring stack (Prometheus/Grafana).
+Alerts are de-duplicated (one open alert per type+scope), auto-resolve when
+the condition clears, and can be pushed to a Slack/Teams webhook via
+`ALERT_WEBHOOK_URL`.
+
+## Limitations
+
+Single-broker Kafka (RF=1), Spark in `local[2]` mode, Airflow standalone
+(SequentialExecutor + SQLite), a Docker-volume data lake instead of S3/HDFS,
+at-least-once delivery (duplicates are removed in the batch layer, not the
+speed layer), no authentication on the API/dashboard. See the report,
+section 9, for the production-scale changes.
 
 ## Individual contributions
 
-_(Fill in if submitted as a group: name — components owned.)_
+_Individual submission — all components designed and implemented by the author.
+(If submitted as a group, replace with: name — components owned.)_

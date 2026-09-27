@@ -1,0 +1,38 @@
+{
+  "stopped_at": "09:26:21",
+  "summary": "The rule engine raised 2 NO_DATA alert(s) (meter_producer, speed_layer) and /health reported the affected components as stale; after restarting the producer the speed layer resumed from its Kafka offsets and every NO_DATA alert auto-resolved without manual action.",
+  "timeline": [
+    {
+      "time": "09:26:21",
+      "what": "docker compose stop meter-producer (streaming source killed)"
+    },
+    {
+      "time": "09:28:23",
+      "what": "/health marks meter_producer STALE (last heartbeat 127 s ago); overall DEGRADED"
+    },
+    {
+      "time": "09:28:33",
+      "what": "/health marks speed_layer STALE (last heartbeat 122 s ago); overall DEGRADED"
+    },
+    {
+      "time": "09:28:33",
+      "what": "Alert NO_DATA (CRITICAL) raised for meter_producer: No heartbeat from meter_producer for 2.2 min (budget 2.0 min)"
+    },
+    {
+      "time": "09:28:43",
+      "what": "Alert NO_DATA (CRITICAL) raised for speed_layer: No heartbeat from speed_layer for 2.0 min (budget 2.0 min)"
+    },
+    {
+      "time": "09:28:51",
+      "what": "Dashboard screenshot taken (status pill DEGRADED, NO_DATA alerts listed)"
+    },
+    {
+      "time": "09:29:52",
+      "what": "docker compose start meter-producer (source restored)"
+    },
+    {
+      "time": "09:30:12",
+      "what": "All NO_DATA alerts auto-resolved; /health back to OK"
+    }
+  ]
+}

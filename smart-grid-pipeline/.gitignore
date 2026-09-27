@@ -2,9 +2,12 @@ __pycache__/
 *.pyc
 .venv/
 logs/
-data/parquet/
-data/batch_drop/
+reports/*
+!reports/.gitkeep
+data/
 *.log
 .env
 node_modules/
 .pytest_cache/
+~$*
+tests/.test-logs/

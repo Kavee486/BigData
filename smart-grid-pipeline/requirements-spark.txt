@@ -1,0 +1,3 @@
+# Spark speed layer image (Spark itself comes from the pyspark wheel).
+pyspark==3.5.1
+psycopg2-binary==2.9.9

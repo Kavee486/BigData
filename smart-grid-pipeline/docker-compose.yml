@@ -1,11 +1,15 @@
-version: "3.8"
+# Smart Grid Lambda pipeline -- one command brings up the whole platform:
+#   docker compose up --build -d
+# Values below can be overridden from a .env file (see .env.example).
 
 x-app-env: &app-env
-  SIMULATED_DAY_SECONDS: "300"
-  METER_EMIT_INTERVAL_SECONDS: "2"
-  NUM_HOUSEHOLDS: "24"
+  SIMULATED_DAY_SECONDS: "${SIMULATED_DAY_SECONDS:-300}"
+  METER_EMIT_INTERVAL_SECONDS: "${METER_EMIT_INTERVAL_SECONDS:-2}"
+  NUM_HOUSEHOLDS: "${NUM_HOUSEHOLDS:-24}"
+  DIRTY_EVENT_RATE: "${DIRTY_EVENT_RATE:-0.01}"
   KAFKA_BOOTSTRAP_SERVERS: "kafka:9092"
   KAFKA_TOPIC_METER_READINGS: "smart-meter-readings"
+  KAFKA_PARTITIONS: "3"
   POSTGRES_HOST: "postgres"
   POSTGRES_PORT: "5432"
   POSTGRES_DB: "smartgrid"
@@ -13,94 +17,136 @@ x-app-env: &app-env
   POSTGRES_PASSWORD: "smartgrid"
   DATA_LAKE_ROOT: "/data/lake"
   BATCH_DROP_DIR: "/data/batch_drop"
+  REPORTS_DIR: "/data/reports"
   LOG_DIR: "/logs"
-  LOW_RENEWABLE_PCT_THRESHOLD: "10"
-  NO_DATA_ALERT_MINUTES: "2"
+  LOW_RENEWABLE_PCT_THRESHOLD: "${LOW_RENEWABLE_PCT_THRESHOLD:-10}"
+  NO_DATA_ALERT_MINUTES: "${NO_DATA_ALERT_MINUTES:-2}"
+  INVALID_EVENT_RATE_THRESHOLD_PCT: "${INVALID_EVENT_RATE_THRESHOLD_PCT:-5}"
+  STREAM_LAG_THRESHOLD_SECONDS: "${STREAM_LAG_THRESHOLD_SECONDS:-60}"
+  RECONCILIATION_DRIFT_THRESHOLD_PCT: "${RECONCILIATION_DRIFT_THRESHOLD_PCT:-10}"
+  ALERT_WEBHOOK_URL: "${ALERT_WEBHOOK_URL:-}"
 
 services:
-  zookeeper:
-    image: bitnami/zookeeper:3.9
-    environment:
-      ALLOW_ANONYMOUS_LOGIN: "yes"
-    ports: ["2181:2181"]
-
+  # ---------------- Ingestion ----------------
   kafka:
-    image: bitnami/kafka:3.6
-    depends_on: [zookeeper]
+    image: apache/kafka:3.7.0          # official image, KRaft mode (no ZooKeeper)
+    hostname: kafka
     environment:
-      KAFKA_CFG_ZOOKEEPER_CONNECT: "zookeeper:2181"
-      KAFKA_CFG_LISTENERS: "PLAINTEXT://:9092"
-      KAFKA_CFG_ADVERTISED_LISTENERS: "PLAINTEXT://kafka:9092"
-      ALLOW_PLAINTEXT_LISTENER: "yes"
-      KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE: "true"
-      KAFKA_CFG_NUM_PARTITIONS: "3"
-    ports: ["9092:9092"]
+      CLUSTER_ID: "smartgrid-kraft-cluster-01"
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: "broker,controller"
+      KAFKA_LISTENERS: "PLAINTEXT://:9092,CONTROLLER://:9093,PLAINTEXT_HOST://:29092"
+      KAFKA_ADVERTISED_LISTENERS: "PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092"
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: "CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT"
+      KAFKA_CONTROLLER_QUORUM_VOTERS: "1@kafka:9093"
+      KAFKA_CONTROLLER_LISTENER_NAMES: "CONTROLLER"
+      KAFKA_INTER_BROKER_LISTENER_NAME: "PLAINTEXT"
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_NUM_PARTITIONS: 3
+      KAFKA_LOG_RETENTION_HOURS: 168
+      KAFKA_LOG_DIRS: "/var/lib/kafka/data"
+      KAFKA_HEAP_OPTS: "-Xms256m -Xmx512m"
+    ports: ["29092:29092"]
+    volumes:
+      - kafka-data:/var/lib/kafka/data
     healthcheck:
-      test: ["CMD", "kafka-topics.sh", "--bootstrap-server", "localhost:9092", "--list"]
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list >/dev/null 2>&1"]
       interval: 10s
-      timeout: 10s
-      retries: 10
+      timeout: 15s
+      retries: 12
+      start_period: 20s
 
+  # ---------------- Storage / serving store ----------------
   postgres:
     image: postgres:16
     environment:
       POSTGRES_DB: smartgrid
       POSTGRES_USER: smartgrid
       POSTGRES_PASSWORD: smartgrid
-    ports: ["5432:5432"]
+    ports: ["${POSTGRES_HOST_PORT:-5433}:5432"]   # 5433 on the host avoids clashing with a local Postgres
     volumes:
       - pg-data:/var/lib/postgresql/data
-      - ./storage/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./storage/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U smartgrid -d smartgrid"]
       interval: 5s
       timeout: 5s
-      retries: 10
+      retries: 20
 
+  # ---------------- Simulated sources ----------------
   meter-producer:
     build: { context: ., dockerfile: Dockerfile.app }
+    image: smartgrid-app:latest
     command: ["python", "sources/smart_meter_producer.py"]
     environment: *app-env
     depends_on:
       kafka: { condition: service_healthy }
+      postgres: { condition: service_healthy }
+    ports: ["8001:8001"]                # producer's own Prometheus metrics
     volumes:
       - ./logs:/logs
+    restart: unless-stopped
 
   tariff-batch-source:
     build: { context: ., dockerfile: Dockerfile.app }
+    image: smartgrid-app:latest
     command: ["python", "sources/tariff_batch_source.py"]
     environment: *app-env
+    depends_on:
+      postgres: { condition: service_healthy }
     volumes:
-      - lake-data:/data/lake
       - batch-drop:/data/batch_drop
       - ./logs:/logs
+    restart: unless-stopped
 
+  # ---------------- Speed layer ----------------
   spark-speed-layer:
     build: { context: ., dockerfile: Dockerfile.spark }
+    image: smartgrid-spark:latest
     command: >
-      spark-submit
-      --master local[2]
-      --packages org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.1,org.postgresql:postgresql:42.7.3
+      spark-submit --master local[2] --driver-memory 1g
+      --conf spark.jars.ivy=/opt/ivy
+      --packages org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.1
       /app/processing/speed_layer_spark.py
     environment: *app-env
     depends_on:
       kafka: { condition: service_healthy }
       postgres: { condition: service_healthy }
+    ports: ["4040:4040"]                # Spark UI (streaming query progress)
     volumes:
       - lake-data:/data/lake
       - ./logs:/logs
+    restart: unless-stopped
 
+  # ---------------- Observability ----------------
   alerts-engine:
     build: { context: ., dockerfile: Dockerfile.app }
+    image: smartgrid-app:latest
     command: ["python", "observability/alerts.py"]
     environment: *app-env
     depends_on:
       postgres: { condition: service_healthy }
     volumes:
       - ./logs:/logs
+    restart: unless-stopped
 
+  prometheus:
+    image: prom/prometheus:v2.53.0
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.retention.time=2d"
+    ports: ["9090:9090"]
+    volumes:
+      - ./observability/prometheus:/etc/prometheus:ro
+    depends_on: [api, meter-producer]
+
+  # ---------------- Serving layer ----------------
   api:
     build: { context: ., dockerfile: Dockerfile.app }
+    image: smartgrid-app:latest
     command: ["uvicorn", "serving.api.main:app", "--host", "0.0.0.0", "--port", "8000"]
     environment: *app-env
     depends_on:
@@ -108,30 +154,44 @@ services:
     ports: ["8000:8000"]
     volumes:
       - ./logs:/logs
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/docs', timeout=3)"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
 
+  # ---------------- Orchestration (batch layer) ----------------
   airflow:
     build: { context: ., dockerfile: Dockerfile.airflow }
+    image: smartgrid-airflow:latest
     command: >
-      bash -c "airflow db init &&
-               airflow users create --username admin --password admin --firstname Admin --lastname User --role Admin --email admin@example.com || true &&
-               airflow standalone"
+      bash -c "airflow db migrate &&
+      (airflow users create --username admin --password admin --firstname Admin --lastname User --role Admin --email admin@example.com || true) &&
+      exec airflow standalone"
     environment:
       <<: *app-env
       AIRFLOW__CORE__EXECUTOR: "SequentialExecutor"
       AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: "sqlite:////opt/airflow/airflow.db"
       AIRFLOW__CORE__DAGS_FOLDER: "/app/airflow/dags"
       AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+      AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: "false"
+      AIRFLOW__SCHEDULER__MIN_FILE_PROCESS_INTERVAL: "30"
+      AIRFLOW__WEBSERVER__SECRET_KEY: "smartgrid-demo-secret"
       AIRFLOW__WEBSERVER__EXPOSE_CONFIG: "true"
     depends_on:
       postgres: { condition: service_healthy }
     ports: ["8080:8080"]
     volumes:
-      - lake-data:/data/lake
-      - batch-drop:/data/batch_drop
+      - lake-data:/data/lake:ro
+      - batch-drop:/data/batch_drop:ro
+      - ./reports:/data/reports
       - airflow-home:/opt/airflow
       - ./logs:/logs
+    restart: unless-stopped
 
 volumes:
+  kafka-data:
   pg-data:
   lake-data:
   batch-drop:

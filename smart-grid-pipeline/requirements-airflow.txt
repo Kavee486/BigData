@@ -1,0 +1,5 @@
+# Extra packages for the Airflow image (installed with Airflow pinned so pip
+# cannot upgrade/downgrade Airflow's own dependencies). Runs the batch layer
+# via spark-submit (from the pyspark wheel) and the alert/report tasks.
+pyspark==3.5.1
+psycopg2-binary==2.9.9

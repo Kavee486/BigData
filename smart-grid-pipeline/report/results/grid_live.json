@@ -1,0 +1,76 @@
+{
+  "source": "speed_layer",
+  "clock": {
+    "sim_day": 5,
+    "day_fraction": 0.481,
+    "sim_time_of_day": "11:33",
+    "daylight": true,
+    "simulated_day_seconds": 300
+  },
+  "zones": [
+    {
+      "grid_zone": "East",
+      "window_start": "2026-09-27T09:44:00+00:00",
+      "window_end": "2026-09-27T09:44:30+00:00",
+      "avg_consumption_kwh": 0.5033444444444445,
+      "avg_solar_kwh": 0.1415888888888889,
+      "total_consumption_kwh": 45.301,
+      "total_solar_kwh": 12.743,
+      "renewable_pct": 28.129621862652037,
+      "event_count": 90,
+      "household_count": 6,
+      "updated_at": "2026-09-27T09:44:33.368634+00:00",
+      "below_threshold": false,
+      "low_renewable": false
+    },
+    {
+      "grid_zone": "North",
+      "window_start": "2026-09-27T09:44:00+00:00",
+      "window_end": "2026-09-27T09:44:30+00:00",
+      "avg_consumption_kwh": 0.5174886363636364,
+      "avg_solar_kwh": 0.2235568181818182,
+      "total_consumption_kwh": 45.539,
+      "total_solar_kwh": 19.673000000000002,
+      "renewable_pct": 43.20033377983707,
+      "event_count": 88,
+      "household_count": 6,
+      "updated_at": "2026-09-27T09:44:33.368634+00:00",
+      "below_threshold": false,
+      "low_renewable": false
+    },
+    {
+      "grid_zone": "South",
+      "window_start": "2026-09-27T09:44:00+00:00",
+      "window_end": "2026-09-27T09:44:30+00:00",
+      "avg_consumption_kwh": 0.5705333333333333,
+      "avg_solar_kwh": 0.08161111111111112,
+      "total_consumption_kwh": 51.348,
+      "total_solar_kwh": 7.345000000000001,
+      "renewable_pct": 14.304354599984423,
+      "event_count": 90,
+      "household_count": 6,
+      "updated_at": "2026-09-27T09:44:33.368634+00:00",
+      "below_threshold": false,
+      "low_renewable": false
+    },
+    {
+      "grid_zone": "West",
+      "window_start": "2026-09-27T09:44:00+00:00",
+      "window_end": "2026-09-27T09:44:30+00:00",
+      "avg_consumption_kwh": 0.5213595505617977,
+      "avg_solar_kwh": 0.1503370786516854,
+      "total_consumption_kwh": 46.400999999999996,
+      "total_solar_kwh": 13.38,
+      "renewable_pct": 28.83558543996897,
+      "event_count": 89,
+      "household_count": 6,
+      "updated_at": "2026-09-27T09:44:33.368634+00:00",
+      "below_threshold": false,
+      "low_renewable": false
+    }
+  ],
+  "grid_total_consumption_kwh": 188.589,
+  "grid_total_solar_kwh": 53.141,
+  "grid_renewable_pct": 28.18,
+  "low_renewable_threshold_pct": 10.0
+}
