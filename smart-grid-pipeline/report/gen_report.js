@@ -99,15 +99,39 @@ for (const a of [...alertsOpen, ...alertsResolved]) alertCounts[a.alert_type] = 
 const S = [];
 
 // ================================================================= TITLE
+// Front page follows the department's report template (University of Ruhuna).
+const SERIF = "Cambria";
+const AUTHORS = [["Sewvandi M.A.K.", "EG/2021/4808"], ["Peiris P.R.S.", "EG/2021/4706"]];
+const tp = (text, { size = 24, bold = false, before = 0, after = 0 } = {}) => new Paragraph({
+  alignment: AlignmentType.CENTER, spacing: { before, after },
+  children: [new TextRun({ text, size, bold, font: SERIF })],
+});
+const noBorder = { style: BorderStyle.NONE, size: 0, color: "FFFFFF" };
+const noBorders = { top: noBorder, bottom: noBorder, left: noBorder, right: noBorder, insideHorizontal: noBorder, insideVertical: noBorder };
+const authorCell = (text, width, align) => new TableCell({
+  width: { size: width, type: WidthType.DXA }, borders: noBorders,
+  children: [new Paragraph({ alignment: align, spacing: { after: 40 }, children: [new TextRun({ text, size: 22, font: SERIF })] })],
+});
 S.push(
-  new Paragraph({ spacing: { before: 1800 }, alignment: AlignmentType.CENTER, children: [new TextRun({ text: "Smart Grid Energy Monitoring & Billing", bold: true, size: 48, font: FONT, color: NAVY })] }),
-  new Paragraph({ spacing: { before: 160 }, alignment: AlignmentType.CENTER, children: [new TextRun({ text: "An End-to-End Lambda-Architecture Data Pipeline", size: 30, font: FONT, color: ACCENT })] }),
-  new Paragraph({ spacing: { before: 500 }, alignment: AlignmentType.CENTER, children: [new TextRun({ text: "EC8203 Applied Big Data Engineering — Mini Project Report", size: 24, font: FONT })] }),
-  new Paragraph({ spacing: { before: 120 }, alignment: AlignmentType.CENTER, children: [new TextRun({ text: "Use Case 3: Smart Grid Energy Monitoring & Billing", size: 22, italics: true, font: FONT })] }),
-  new Paragraph({ spacing: { before: 900 }, alignment: AlignmentType.CENTER, children: [new TextRun({ text: "Name: ______________________________", size: 22, font: FONT })] }),
-  new Paragraph({ spacing: { before: 160 }, alignment: AlignmentType.CENTER, children: [new TextRun({ text: "Registration No.: ____________________", size: 22, font: FONT })] }),
-  new Paragraph({ spacing: { before: 160 }, alignment: AlignmentType.CENTER, children: [new TextRun({ text: "Repository: smart-grid-pipeline/ (docker compose up --build -d)", size: 20, font: FONT, color: "555555" })] }),
-  new Paragraph({ spacing: { before: 900 }, alignment: AlignmentType.CENTER, children: [new TextRun({ text: "September 2026", size: 20, font: FONT, color: "666666" })] }),
+  new Paragraph({ alignment: AlignmentType.CENTER, spacing: { before: 200, after: 500 },
+    children: [new ImageRun({ type: "png", data: fs.readFileSync(R("assets/ruhuna_logo.png")), transformation: { width: 106, height: 150 } })] }),
+  tp("Smart Grid Energy Monitoring & Billing:", { size: 40, after: 60 }),
+  tp("A Lambda-Architecture Data Pipeline", { size: 40, after: 500 }),
+  tp("Mini Project Assessment", { size: 30, bold: true, after: 160 }),
+  tp("EC8203 Applied Big Data Engineering", { size: 24, after: 500 }),
+  tp("A mini project report submitted to the", { size: 22, after: 400 }),
+  tp("Department of Electrical and Information Engineering", { size: 24 }),
+  tp("Faculty of Engineering", { size: 24 }),
+  tp("University of Ruhuna", { size: 24 }),
+  tp("Sri Lanka", { size: 24, after: 600 }),
+  tp("by", { size: 22, after: 400 }),
+  new Table({
+    alignment: AlignmentType.CENTER, borders: noBorders, columnWidths: [2600, 500, 2000],
+    width: { size: 5100, type: WidthType.DXA },
+    rows: AUTHORS.map(([name, id]) => new TableRow({ children: [
+      authorCell(name, 2600, AlignmentType.LEFT), authorCell("-", 500, AlignmentType.CENTER), authorCell(id, 2000, AlignmentType.LEFT)] })),
+  }),
+  tp("September 2026", { size: 22, before: 900 }),
   pb(),
   new Paragraph({ children: [new TextRun({ text: "Contents", bold: true, size: 28, color: NAVY, font: FONT })] }),
   new TableOfContents("Contents", { hyperlink: true, headingStyleRange: "1-2" }),
@@ -319,7 +343,13 @@ S.push(p("**What we would do differently.** We would introduce a schema registry
 S.push(h1("10. Conclusion"));
 S.push(p("The platform ingests a continuous meter stream and a daily tariff extract, answers the business question in real time (grid load and renewable mix by zone) and per day (exact household bills and solar contribution), and shows both views plus their merge in one API and dashboard. Lambda was chosen because the use case combines a low-latency monitoring need with a correctness-critical, replayable daily computation over a naturally batch source, and the measured speed-versus-batch drift shows why the batch layer is needed. The pipeline is observable at every stage through structured logs, heartbeats, quality and lag metrics, seven alert rules and Prometheus."));
 S.push(h2("Statement of contribution and use of AI tools"));
-S.push(p("Individual submission: all design, implementation, testing and writing by the author. (For a group submission, replace this with one line per member naming the components they owned.) AI coding assistance was used for boilerplate, as the module rules permit; every architectural decision and all core pipeline logic were reviewed and can be explained and defended by the author."));
+S.push(p(`Group members: ${AUTHORS.map(([n, id]) => `${n} (${id})`).join(" and ")}.`));
+S.push(table(["Member", "Components owned"], [
+  ["Sewvandi M.A.K. (EG/2021/4808)", "[to be completed by the group]"],
+  ["Peiris P.R.S. (EG/2021/4706)", "[to be completed by the group]"],
+], [3600, 6250]));
+S.push(spacer());
+S.push(p("AI coding assistance was used for boilerplate, as the module rules permit; every architectural decision and all core pipeline logic were reviewed by the group and can be explained and defended in the viva."));
 
 // ---------------------------------------------------------------- build
 const doc = new Document({
@@ -337,9 +367,12 @@ const doc = new Document({
   },
   numbering: { config: [] },
   sections: [{
-    properties: { page: { size: { width: 11906, height: 16838 }, margin: { top: 1000, bottom: 1000, left: 1030, right: 1030 } } },
-    headers: { default: new Header({ children: [new Paragraph({ alignment: AlignmentType.RIGHT, children: [new TextRun({ text: "EC8203 Mini Project — Smart Grid Lambda Pipeline", size: 16, color: "888888", font: FONT })] })] }) },
-    footers: { default: new Footer({ children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ children: [PageNumber.CURRENT], size: 18, font: FONT })] })] }) },
+    properties: { titlePage: true, page: { size: { width: 11906, height: 16838 }, margin: { top: 1000, bottom: 1000, left: 1030, right: 1030 } } },
+    headers: { first: new Header({ children: [] }), default: new Header({ children: [new Paragraph({ alignment: AlignmentType.RIGHT, children: [new TextRun({ text: "EC8203 Mini Project — Smart Grid Lambda Pipeline", size: 16, color: "888888", font: FONT })] })] }) },
+    footers: {
+      first: new Footer({ children: [] }),
+      default: new Footer({ children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ children: ["Page ", PageNumber.CURRENT, " of ", PageNumber.TOTAL_PAGES], size: 18, font: FONT })] })] }),
+    },
     children: S,
   }],
 });

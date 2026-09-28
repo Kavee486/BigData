@@ -181,8 +181,3 @@ Single-broker Kafka (RF=1), Spark in `local[2]` mode, Airflow standalone
 at-least-once delivery (duplicates are removed in the batch layer, not the
 speed layer), no authentication on the API/dashboard. See the report,
 section 9, for the production-scale changes.
-
-## Individual contributions
-
-_Individual submission — all components designed and implemented by the author.
-(If submitted as a group, replace with: name — components owned.)_
