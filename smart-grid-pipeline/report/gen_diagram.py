@@ -1,5 +1,7 @@
-"""Renders report/architecture_diagram.png (run from the repo root:
-python report/gen_diagram.py). Layered view: sources -> ingestion ->
+"""Renders the report's architecture figure (report/architecture_diagram.png).
+Run from the repo root: python report/gen_diagram.py
+
+Black-and-white, report-style layered view: sources -> ingestion ->
 processing (speed + batch) -> storage -> serving, with observability as a
 cross-cutting band."""
 import matplotlib
@@ -8,93 +10,81 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from matplotlib.patches import FancyArrowPatch, FancyBboxPatch, Rectangle
 
+plt.rcParams["font.family"] = "Times New Roman"
+
 fig, ax = plt.subplots(figsize=(15, 9))
 ax.set_xlim(0, 15)
 ax.set_ylim(0, 9)
 ax.axis("off")
 
-C = {
-    "source": "#2f6fed", "ingest": "#111827", "speed": "#d9822b", "batch": "#7c3aed",
-    "store": "#0f8a4f", "serve": "#c73636", "obs": "#475569",
-}
+# Grey levels distinguish the layers without colour.
+FILL = {"plain": "white", "speed": "#e9e9e9", "batch": "#d4d4d4"}
 
 
-def box(x, y, w, h, title, body, color, fs=8.6):
-    ax.add_patch(FancyBboxPatch((x, y), w, h, boxstyle="round,pad=0.04,rounding_size=0.1",
-                                linewidth=1.1, edgecolor="#111", facecolor=color, zorder=2))
-    ax.text(x + w / 2, y + h - 0.22, title, ha="center", va="top", fontsize=fs + 1.2, color="white",
+def box(x, y, w, h, title, body, fill="plain", fs=10.5):
+    ax.add_patch(FancyBboxPatch((x, y), w, h, boxstyle="round,pad=0.04,rounding_size=0.08",
+                                linewidth=1.2, edgecolor="black", facecolor=FILL[fill], zorder=2))
+    ax.text(x + w / 2, y + h - 0.2, title, ha="center", va="top", fontsize=fs + 1.5, color="black",
             weight="bold", zorder=3)
-    ax.text(x + w / 2, y + h - 0.55, body, ha="center", va="top", fontsize=fs, color="white", zorder=3,
-            linespacing=1.35)
+    ax.text(x + w / 2, y + h - 0.58, body, ha="center", va="top", fontsize=fs, color="black", zorder=3,
+            linespacing=1.3)
 
 
-def arrow(p1, p2, label=None, color="#222", rad=0.0, lx=0.0, ly=0.12, ls="-"):
-    ax.add_patch(FancyArrowPatch(p1, p2, arrowstyle="-|>", mutation_scale=14, linewidth=1.5, color=color,
+def arrow(p1, p2, label=None, rad=0.0, lx=0.0, ly=0.13, ls="-"):
+    ax.add_patch(FancyArrowPatch(p1, p2, arrowstyle="-|>", mutation_scale=14, linewidth=1.3, color="black",
                                  zorder=1, linestyle=ls, connectionstyle=f"arc3,rad={rad}"))
     if label:
-        ax.text((p1[0] + p2[0]) / 2 + lx, (p1[1] + p2[1]) / 2 + ly, label, fontsize=7.8, ha="center",
-                color="#111", zorder=4, bbox=dict(boxstyle="round,pad=0.15", fc="white", ec="none", alpha=0.85))
+        ax.text((p1[0] + p2[0]) / 2 + lx, (p1[1] + p2[1]) / 2 + ly, label, fontsize=9.5, ha="center",
+                color="black", style="italic", zorder=4,
+                bbox=dict(boxstyle="square,pad=0.1", fc="white", ec="none"))
 
 
-# Layer bands
-layers = [(0.15, 2.45, "1  SOURCES"), (2.75, 2.35, "2  INGESTION"), (5.3, 3.35, "3  PROCESSING"),
-          (8.85, 2.85, "4  STORAGE"), (11.9, 2.95, "5  SERVING")]
+layers = [(0.15, 2.45, "Sources"), (2.75, 2.35, "Ingestion"), (5.3, 3.35, "Processing"),
+          (8.85, 2.85, "Storage"), (11.9, 2.95, "Serving")]
 for x, w, name in layers:
-    ax.add_patch(Rectangle((x, 1.75), w, 6.55, facecolor="#f3f4f6", edgecolor="#d1d5db", zorder=0))
-    ax.text(x + w / 2, 8.12, name, ha="center", fontsize=10, weight="bold", color="#374151")
+    ax.add_patch(Rectangle((x, 1.75), w, 6.55, facecolor="white", edgecolor="black", linestyle=(0, (4, 3)),
+                           linewidth=0.8, zorder=0))
+    ax.text(x + w / 2, 8.1, name, ha="center", fontsize=13, weight="bold", color="black")
 
-# 1 Sources
-box(0.3, 5.75, 2.15, 1.75, "Smart meters", "smart_meter_producer.py\n24 households, 4 zones\n1 event / 2 s each\n~1% dirty + duplicates", C["source"])
-box(0.3, 2.35, 2.15, 1.75, "Tariff extract", "tariff_batch_source.py\n1 CSV per sim-day\n(end of day + 20 s)\natomic + _SUCCESS", C["source"])
+box(0.3, 5.75, 2.15, 1.75, "Smart meters", "24 households, 4 zones\none reading every 2 s\n~1% faulty readings")
+box(0.3, 2.35, 2.15, 1.75, "Tariff extract", "one CSV file per\nsimulated day,\npublished after the\nday ends")
 
-# 2 Ingestion
-box(2.9, 5.75, 2.05, 1.75, "Apache Kafka", "KRaft, 1 broker\ntopic smart-meter-\nreadings, 3 partitions\nkey = household_id", C["ingest"])
-box(2.9, 2.35, 2.05, 1.75, "Landing zone", "/data/batch_drop\ntariff_simdayN.csv\n_SUCCESS_simdayN", C["ingest"])
+box(2.9, 5.75, 2.05, 1.75, "Apache Kafka", "meter readings topic\n3 partitions\nkeyed by household")
+box(2.9, 2.35, 2.05, 1.75, "Landing area", "daily tariff file\n+ completion marker")
 
-# 3 Processing
-box(5.45, 5.3, 3.05, 2.55, "SPEED LAYER",
-    "Spark Structured Streaming\n1. parse + validate (quality_rules)\n2. 30 s windows / 15 s slide,\n    1 min watermark, by zone\n3. dedup (micro-batch) -> lake\n4. running household totals\n5. quality + lag metrics", C["speed"], fs=8.2)
-box(5.45, 3.55, 3.05, 1.2, "Apache Airflow", "daily_batch_pipeline, every 60 s:\nresolve day > sensor > spark-submit\n> report > alert check", C["batch"], fs=8.2)
-box(5.45, 1.95, 3.05, 1.35, "BATCH LAYER", "Spark batch (per finished sim-day)\nglobal dedup, exact totals, tariff\nvalidate + fallback, join, bill,\nspeed-vs-batch reconciliation", C["batch"], fs=8.2)
+box(5.45, 5.3, 3.05, 2.55, "Speed layer",
+    "Spark Structured Streaming\nvalidate and clean readings\n30 s windows per zone\n(load, solar, renewable %)\narchive clean readings\nrunning household totals", "speed")
+box(5.45, 3.55, 3.05, 1.2, "Apache Airflow", "schedules the daily job:\nwait for file, run Spark,\npublish report, check alerts", "batch")
+box(5.45, 1.95, 3.05, 1.35, "Batch layer", "Spark batch job per day\nexact totals, tariff join,\nbills, reconciliation", "batch")
 
-# 4 Storage
-box(9.0, 6.0, 2.55, 1.85, "Parquet data lake", "raw_meter_events/\n  sim_day=N (immutable)\nquarantine/\n  invalid_reason=...", C["store"], fs=8.2)
-box(9.0, 3.2, 2.55, 2.55, "PostgreSQL", "speed: live_zone_metrics,\nlive_household_consumption,\nstream_quality_metrics\nbatch: daily_billing_report,\nhousehold_daily_consumption,\ntariff_reference, batch_recon.\nops: alerts, pipeline_health", C["store"], fs=7.9)
-box(9.0, 1.95, 2.55, 1.05, "Report files", "reports/daily_report_\nsimdayN.html + .csv", C["store"], fs=8.2)
+box(9.0, 6.0, 2.55, 1.85, "Parquet data lake", "raw readings\npartitioned by day\n(immutable)\nrejected readings")
+box(9.0, 3.2, 2.55, 2.55, "PostgreSQL", "live zone metrics\nlive household totals\ndaily bills\nreconciliation results\nalerts and health")
+box(9.0, 1.95, 2.55, 1.05, "Report files", "daily CSV and\nHTML report")
 
-# 5 Serving
-box(12.05, 5.0, 2.65, 2.85, "FastAPI", "/api/grid/live, /history\n/api/households/live\n/api/billing/daily, /summary\n/api/billing/projection\n  (speed x batch merge)\n/api/reconciliation\n/api/alerts, /health, /metrics", C["serve"], fs=8.0)
-box(12.05, 1.95, 2.65, 2.7, "Dashboard", "live zones + 15 min chart\nalerts, pipeline health\nprovisional bills (merge)\ndaily billing report\nreconciliation", C["serve"], fs=8.2)
+box(12.05, 5.0, 2.65, 2.85, "REST API", "live grid view\ndaily billing report\nprovisional bills\n(speed + batch merge)\nalerts, health,\nmetrics")
+box(12.05, 1.95, 2.65, 2.7, "Dashboard", "live zone view\nalerts and health\nprovisional and\nfinal bills")
 
-# Observability band
-ax.add_patch(FancyBboxPatch((0.3, 0.1), 14.4, 1.45, boxstyle="round,pad=0.04,rounding_size=0.1",
-                            facecolor=C["obs"], edgecolor="#111", zorder=2))
-ax.text(7.5, 1.45, "OBSERVABILITY (cross-cutting)", ha="center", va="top", color="white", weight="bold", fontsize=10)
-ax.text(7.5, 1.05, "Structured JSON logs from every stage, correlated by sim_day / batch_id / run_id / event_id   |   heartbeats -> pipeline_health\n"
-        "alerts.py: LOW_RENEWABLE, NO_DATA, COMPONENT_FAILED, HIGH_INVALID_RATE, HIGH_STREAM_LAG, RECONCILIATION_DRIFT, PIPELINE_TASK_FAILED\n"
-        "Prometheus scrapes API :8000/metrics + producer :8001 and evaluates alert_rules.yml   |   Spark UI :4040   |   Airflow UI :8080",
-        ha="center", va="top", color="white", fontsize=7.9, linespacing=1.5)
+ax.add_patch(FancyBboxPatch((0.3, 0.1), 14.4, 1.45, boxstyle="round,pad=0.04,rounding_size=0.08",
+                            facecolor="#f2f2f2", edgecolor="black", linewidth=1.2, zorder=2))
+ax.text(7.5, 1.45, "Observability (all layers)", ha="center", va="top", color="black", weight="bold", fontsize=12)
+ax.text(7.5, 1.08, "structured JSON logs from every component   |   component heartbeats and health check\n"
+        "alert rules: low renewable share, missing data, failed component, invalid data rate, processing lag, speed/batch drift\n"
+        "Prometheus metrics and alert rules   |   Spark and Airflow monitoring interfaces",
+        ha="center", va="top", color="black", fontsize=10, linespacing=1.45)
 
-# Flows: speed path
 arrow((2.45, 6.6), (2.9, 6.6))
-arrow((4.95, 6.6), (5.45, 6.6), "stream")
+arrow((4.95, 6.6), (5.45, 6.6))
 arrow((8.5, 7.0), (9.0, 7.0), "append")
 arrow((8.5, 5.6), (9.0, 5.1), "upsert", ly=0.2)
-# batch path
 arrow((2.45, 3.2), (2.9, 3.2))
 arrow((4.95, 3.55), (5.45, 4.05), "marker", ly=0.14)
 arrow((6.95, 3.55), (6.95, 3.3))
-arrow((4.95, 2.8), (5.45, 2.6), "CSV", ly=-0.28)
-arrow((9.0, 6.2), (8.5, 3.2), "read sim_day=N", rad=0.35, lx=-0.35, ly=0.0, color="#5b21b6")
-arrow((8.5, 2.95), (9.0, 3.45), "txn", ly=0.05, lx=-0.15)
+arrow((4.95, 2.8), (5.45, 2.6), "file", ly=-0.3)
+arrow((9.0, 6.2), (8.5, 3.2), "re-read one day", rad=0.35, lx=-0.45, ly=0.0)
+arrow((8.5, 2.95), (9.0, 3.45), "write", ly=0.05, lx=-0.15)
 arrow((8.5, 2.3), (9.0, 2.4), "files", ly=-0.3)
-# serving
-arrow((11.55, 4.6), (12.05, 5.7), "SQL", lx=-0.1)
-arrow((13.35, 5.0), (13.35, 4.65), "JSON", lx=0.45, ly=-0.05)
+arrow((11.55, 4.6), (12.05, 5.7), "query", lx=-0.15)
+arrow((13.35, 5.0), (13.35, 4.65))
 
-ax.text(7.5, 8.72, "Smart Grid Energy Monitoring & Billing - Lambda Architecture", fontsize=15, weight="bold", ha="center")
-ax.text(7.5, 8.42, "speed layer = fast, approximate view of now   |   batch layer = exact, replayable daily bills   |   merged at query time by the serving API",
-        fontsize=9.5, ha="center", color="#444")
-
-plt.savefig("report/architecture_diagram.png", dpi=180, bbox_inches="tight", facecolor="white")
+plt.savefig("report/architecture_diagram.png", dpi=200, bbox_inches="tight", facecolor="white")
 print("saved report/architecture_diagram.png")
