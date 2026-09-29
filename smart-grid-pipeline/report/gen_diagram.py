@@ -18,12 +18,15 @@ ax.set_ylim(0, 9)
 ax.axis("off")
 
 # Grey levels distinguish the layers without colour.
-FILL = {"plain": "white", "speed": "#e9e9e9", "batch": "#d4d4d4"}
+FILL = {"plain": "white", "source": "#dbeafe", "ingest": "#e5e7eb", "speed": "#fde8c8", "batch": "#e9d5ff",
+        "lake": "#d1fae5", "db": "#bbf7d0", "files": "#ecfccb", "serve": "#fee2e2", "obs": "#e0f2fe"}
+EDGE = {"source": "#1d4ed8", "ingest": "#374151", "speed": "#c2410c", "batch": "#7e22ce", "lake": "#047857",
+        "db": "#15803d", "files": "#4d7c0f", "serve": "#b91c1c", "obs": "#0369a1", "plain": "black"}
 
 
 def box(x, y, w, h, title, body, fill="plain", fs=10.5):
     ax.add_patch(FancyBboxPatch((x, y), w, h, boxstyle="round,pad=0.04,rounding_size=0.08",
-                                linewidth=1.2, edgecolor="black", facecolor=FILL[fill], zorder=2))
+                                linewidth=1.6, edgecolor=EDGE[fill], facecolor=FILL[fill], zorder=2))
     ax.text(x + w / 2, y + h - 0.2, title, ha="center", va="top", fontsize=fs + 1.5, color="black",
             weight="bold", zorder=3)
     ax.text(x + w / 2, y + h - 0.58, body, ha="center", va="top", fontsize=fs, color="black", zorder=3,
@@ -46,26 +49,26 @@ for x, w, name in layers:
                            linewidth=0.8, zorder=0))
     ax.text(x + w / 2, 8.1, name, ha="center", fontsize=13, weight="bold", color="black")
 
-box(0.3, 5.75, 2.15, 1.75, "Smart meters", "24 households, 4 zones\none reading every 2 s\n~1% faulty readings")
-box(0.3, 2.35, 2.15, 1.75, "Tariff extract", "one CSV file per\nsimulated day,\npublished after the\nday ends")
+box(0.3, 5.75, 2.15, 1.75, "Smart meters", "24 households, 4 zones\none reading every 2 s\n~1% faulty readings", "source")
+box(0.3, 2.35, 2.15, 1.75, "Tariff extract", "one CSV file per\nsimulated day,\npublished after the\nday ends", "source")
 
-box(2.9, 5.75, 2.05, 1.75, "Apache Kafka", "meter readings topic\n3 partitions\nkeyed by household")
-box(2.9, 2.35, 2.05, 1.75, "Landing area", "daily tariff file\n+ completion marker")
+box(2.9, 5.75, 2.05, 1.75, "Apache Kafka", "meter readings topic\n3 partitions\nkeyed by household", "ingest")
+box(2.9, 2.35, 2.05, 1.75, "Landing area", "daily tariff file\n+ completion marker", "ingest")
 
 box(5.45, 5.3, 3.05, 2.55, "Speed layer",
     "Spark Structured Streaming\nvalidate and clean readings\n30 s windows per zone\n(load, solar, renewable %)\narchive clean readings\nrunning household totals", "speed")
 box(5.45, 3.55, 3.05, 1.2, "Apache Airflow", "schedules the daily job:\nwait for file, run Spark,\npublish report, check alerts", "batch")
 box(5.45, 1.95, 3.05, 1.35, "Batch layer", "Spark batch job per day\nexact totals, tariff join,\nbills, reconciliation", "batch")
 
-box(9.0, 6.0, 2.55, 1.85, "Parquet data lake", "raw readings\npartitioned by day\n(immutable)\nrejected readings")
-box(9.0, 3.2, 2.55, 2.55, "PostgreSQL", "live zone metrics\nlive household totals\ndaily bills\nreconciliation results\nalerts and health")
-box(9.0, 1.95, 2.55, 1.05, "Report files", "daily CSV and\nHTML report")
+box(9.0, 6.0, 2.55, 1.85, "Parquet data lake", "raw readings\npartitioned by day\n(immutable)\nrejected readings", "lake")
+box(9.0, 3.2, 2.55, 2.55, "PostgreSQL", "live zone metrics\nlive household totals\ndaily bills\nreconciliation results\nalerts and health", "db")
+box(9.0, 1.95, 2.55, 1.05, "Report files", "daily CSV and\nHTML report", "files")
 
-box(12.05, 5.0, 2.65, 2.85, "REST API", "live grid view\ndaily billing report\nprovisional bills\n(speed + batch merge)\nalerts, health,\nmetrics")
-box(12.05, 1.95, 2.65, 2.7, "Dashboard", "live zone view\nalerts and health\nprovisional and\nfinal bills")
+box(12.05, 5.0, 2.65, 2.85, "REST API", "live grid view\ndaily billing report\nprovisional bills\n(speed + batch merge)\nalerts, health,\nmetrics", "serve")
+box(12.05, 1.95, 2.65, 2.7, "Dashboard", "live zone view\nalerts and health\nprovisional and\nfinal bills", "serve")
 
 ax.add_patch(FancyBboxPatch((0.3, 0.1), 14.4, 1.45, boxstyle="round,pad=0.04,rounding_size=0.08",
-                            facecolor="#f2f2f2", edgecolor="black", linewidth=1.2, zorder=2))
+                            facecolor=FILL["obs"], edgecolor=EDGE["obs"], linewidth=1.6, zorder=2))
 ax.text(7.5, 1.45, "Observability (all layers)", ha="center", va="top", color="black", weight="bold", fontsize=12)
 ax.text(7.5, 1.08, "structured JSON logs from every component   |   component heartbeats and health check\n"
         "alert rules: low renewable share, missing data, failed component, invalid data rate, processing lag, speed/batch drift\n"
