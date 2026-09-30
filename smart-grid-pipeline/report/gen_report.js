@@ -1,4 +1,4 @@
-// Generates report/EC8203_MiniProject_Report.docx from the text below plus the
+// Generates report/EC8202_MiniProject_Report.docx from the text below plus the
 // evidence captured from a real run (report/results/*.json, report/screenshots/*.png,
 // produced by report/capture_results.py). Run from the repo root:
 //     node report/gen_report.js
@@ -116,7 +116,7 @@ S.push(
   tp("Smart Grid Energy Monitoring & Billing:", { size: 40, after: 60 }),
   tp("A Lambda-Architecture Data Pipeline", { size: 40, after: 500 }),
   tp("Mini Project Assessment", { size: 30, bold: true, after: 160 }),
-  tp("EC8203 Applied Big Data Engineering", { size: 24, after: 500 }),
+  tp("EC8202 Big Data Analytics", { size: 24, after: 500 }),
   tp("A mini project report submitted to the", { size: 22, after: 400 }),
   tp("Department of Electrical and Information Engineering", { size: 24 }),
   tp("Faculty of Engineering", { size: 24 }),
@@ -398,7 +398,7 @@ const doc = new Document({
     properties: { titlePage: true, page: { size: { width: 11906, height: 16838 }, margin: { top: 1000, bottom: 1000, left: 1030, right: 1030 } } },
     headers: {
       first: new Header({ children: [] }),
-      default: new Header({ children: [new Paragraph({ alignment: AlignmentType.RIGHT, children: [new TextRun({ text: "EC8203 Mini Project — Smart Grid Lambda Pipeline", size: 18, color: BLACK, font: FONT })] })] }),
+      default: new Header({ children: [new Paragraph({ alignment: AlignmentType.RIGHT, children: [new TextRun({ text: "EC8202 Mini Project — Smart Grid Lambda Pipeline", size: 18, color: BLACK, font: FONT })] })] }),
     },
     footers: {
       first: new Footer({ children: [] }),
@@ -409,6 +409,6 @@ const doc = new Document({
 });
 
 Packer.toBuffer(doc).then((buf) => {
-  fs.writeFileSync(R("EC8203_MiniProject_Report.docx"), buf);
-  console.log("wrote report/EC8203_MiniProject_Report.docx");
+  fs.writeFileSync(R("EC8202_MiniProject_Report.docx"), buf);
+  console.log("wrote report/EC8202_MiniProject_Report.docx");
 });

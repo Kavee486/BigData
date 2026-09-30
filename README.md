@@ -1,6 +1,6 @@
 # Smart Grid Energy Monitoring & Billing — Lambda Architecture Pipeline
 
-EC8203 Applied Big Data Engineering — Mini Project (**Use Case 3: Smart Grid Energy Monitoring & Billing**).
+EC8202 Big Data Analytics — Mini Project (**Use Case 3: Smart Grid Energy Monitoring & Billing**).
 
 An end-to-end data platform that ingests smart-meter telemetry in real time
 (Kafka → Spark Structured Streaming) and a daily tariff/billing extract in
@@ -14,7 +14,7 @@ answer:
 
 | | |
 |---|---|
-| 📄 **Technical report** | [`smart-grid-pipeline/report/EC8203_MiniProject_Report.pdf`](smart-grid-pipeline/report/EC8203_MiniProject_Report.pdf) |
+| 📄 **Technical report** | [`smart-grid-pipeline/report/EC8202_MiniProject_Report.pdf`](smart-grid-pipeline/report/EC8202_MiniProject_Report.pdf) |
 | 💻 **Source code** | [`smart-grid-pipeline/`](smart-grid-pipeline/) |
 
 ![Architecture](images/architecture_diagram.png)
