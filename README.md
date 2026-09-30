@@ -15,7 +15,6 @@ answer:
 | | |
 |---|---|
 | 📄 **Technical report** | [`smart-grid-pipeline/report/EC8203_MiniProject_Report.pdf`](smart-grid-pipeline/report/EC8203_MiniProject_Report.pdf) |
-| 🎬 **Demo script** | [`smart-grid-pipeline/docs/DEMO_SCRIPT.md`](smart-grid-pipeline/docs/DEMO_SCRIPT.md) |
 | 💻 **Source code** | [`smart-grid-pipeline/`](smart-grid-pipeline/) |
 
 ![Architecture](images/architecture_diagram.png)
